@@ -19,6 +19,8 @@ android {
         // CI passes these for releases (tag vX.Y.Z -> versionName, run number -> versionCode).
         versionCode = (findProperty("mizuVersionCode") as String?)?.toIntOrNull() ?: 1
         versionName = (findProperty("mizuVersionName") as String?) ?: "1.0.0"
+        // Thai is the default language; English and Japanese are switched in-app.
+        resourceConfigurations += listOf("th", "en", "ja")
         buildConfigField("String", "UPDATE_REPO", "\"$updateRepo\"")
     }
 
@@ -54,10 +56,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    androidResources {
-        // Thai is the default language; English and Japanese are switched in-app.
-        localeFilters += listOf("th", "en", "ja")
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
