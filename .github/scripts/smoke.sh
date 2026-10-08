@@ -22,6 +22,10 @@ adb shell cmd statusbar expand-notifications
 sleep 3
 adb exec-out screencap -p > "shots/notification.png"
 adb shell cmd statusbar collapse
+echo "===== Mizu notifications ====="
+adb shell dumpsys notification --noredact | grep -A6 "pkg=$PKG" | head -40 || true
+echo "===== notification service log ====="
+adb logcat -d | grep -iE "NotificationService|NotificationManager|RemoteViews|$PKG" | grep -ivE "uid=|ActivityManager" | tail -40 || true
 
 
 sleep 3
