@@ -15,14 +15,14 @@ for screen in home history settings weigh; do
   adb exec-out screencap -p > "shots/$screen.png"
 done
 
-# Full-length views: make the screen very tall so a whole scrolling page fits in one capture.
-adb shell wm size 1080x4200
+# Full-length views: lower the density so a whole scrolling page fits in one capture.
+adb shell wm density 200
 for screen in home history settings; do
   adb shell am start -S -W -n $PKG/.MainActivity --es mizu_screen "$screen" --ez mizu_demo true
   sleep 7
   adb exec-out screencap -p > "shots/${screen}_full.png"
 done
-adb shell wm size reset
+adb shell wm density reset
 
 sleep 3
 adb logcat -d -b crash > crash.txt
