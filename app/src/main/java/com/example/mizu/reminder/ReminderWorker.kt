@@ -20,7 +20,7 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
 
         // Re-check at fire time: the goal may have been reached, or the job may have been delayed past the window.
         if (settings.remindersEnabled && content != null && ReminderEngine.isWithinWindow(now, settings)) {
-            NotificationHelper.show(applicationContext, settings.language, content)
+            NotificationHelper.show(applicationContext, settings.language, content, settings.goalMl)
             c.settings.setLastReminder(now)
         }
         c.settings.setSnoozeUntil(null)

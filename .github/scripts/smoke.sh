@@ -15,6 +15,14 @@ for screen in home history settings weigh; do
   adb exec-out screencap -p > "shots/$screen.png"
 done
 
+# Reminder notification with the progress bar, expanded in the shade.
+adb shell am start -S -W -n $PKG/.MainActivity --ez mizu_notif true
+sleep 4
+adb shell cmd statusbar expand-notifications
+sleep 3
+adb exec-out screencap -p > "shots/notification.png"
+adb shell cmd statusbar collapse
+
 
 sleep 3
 adb logcat -d -b crash > crash.txt

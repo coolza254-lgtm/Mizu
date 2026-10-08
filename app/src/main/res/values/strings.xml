@@ -137,6 +137,10 @@
     <string name="tomorrow_at">พรุ่งนี้ %1$s</string>
     <string name="total">รวม</string>
     <string name="not_weighed">ยังไม่ได้ชั่ง</string>
+    <string name="notif_progress_amount">%1$s / %2$s ml · %3$d%%</string>
+    <string name="notif_progress_detail">ดื่มตอนนี้ %1$s ml · เหลืออีก %2$s ml</string>
+    <string name="notif_action_reply">ตอบกลับ</string>
+    <string name="notif_reply_label">ตอบ \"ดื่มแล้ว\" หรือ \"เลื่อน\"</string>
     <string name="undo">เลิกทำ</string>
     <string name="update_idle">แตะเพื่อตรวจหาเวอร์ชันใหม่</string>
     <string name="value_range">ใส่ค่า %1$s–%2$s %3$s</string>

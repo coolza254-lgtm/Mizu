@@ -137,6 +137,10 @@
     <string name="tomorrow_at">明日 %1$s</string>
     <string name="total">合計</string>
     <string name="not_weighed">未計量</string>
+    <string name="notif_progress_amount">%1$s / %2$s ml · %3$d%%</string>
+    <string name="notif_progress_detail">今 %1$s ml · あと %2$s ml</string>
+    <string name="notif_action_reply">返信</string>
+    <string name="notif_reply_label">「飲んだ」か「スヌーズ」で返信</string>
     <string name="undo">元に戻す</string>
     <string name="update_idle">新しいバージョンを確認</string>
     <string name="value_range">%1$s〜%2$s %3$s で入力</string>
