@@ -1,0 +1,64 @@
+name: Release
+
+# Publishes the APK that the in-app updater downloads.
+#  - push a tag like v1.0.1, or
+#  - run this workflow by hand and enter the version (e.g. 1.0.1); the tag is created for you.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without the v (e.g. 1.0.1)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Work out the version
+        id: v
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        run: ./gradlew --no-daemon :core:test
+
+      - name: Build signed release APK
+        env:
+          MIZU_KEYSTORE: ${{ secrets.MIZU_KEYSTORE_PATH }}
+          MIZU_STORE_PASSWORD: ${{ secrets.MIZU_STORE_PASSWORD }}
+          MIZU_KEY_ALIAS: ${{ secrets.MIZU_KEY_ALIAS }}
+          MIZU_KEY_PASSWORD: ${{ secrets.MIZU_KEY_PASSWORD }}
+        run: >
+          ./gradlew --no-daemon :app:assembleRelease
+          -PmizuVersionName=${{ steps.v.outputs.name }}
+          -PmizuVersionCode=${{ github.run_number }}
+
+      - name: Name the APK
+        run: cp app/build/outputs/apk/release/app-release.apk "mizu-${{ steps.v.outputs.tag }}.apk"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.v.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Mizu ${{ steps.v.outputs.name }}
+          generate_release_notes: true
+          files: mizu-${{ steps.v.outputs.tag }}.apk
