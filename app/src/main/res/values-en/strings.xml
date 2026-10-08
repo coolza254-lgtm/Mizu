@@ -141,6 +141,7 @@
     <string name="notif_progress_detail">Drink %1$s ml now · %2$s ml to go</string>
     <string name="notif_action_reply">Reply</string>
     <string name="notif_reply_label">Reply \"Drank\" or \"Snooze\"</string>
+    <string name="notif_amount">%1$s / %2$s ml</string>
     <string name="undo">Undo</string>
     <string name="update_idle">Look for a newer version</string>
     <string name="value_range">Enter %1$s–%2$s %3$s</string>

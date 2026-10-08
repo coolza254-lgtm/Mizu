@@ -61,6 +61,7 @@ object NotificationHelper {
         )
         val title = ctx.getString(if (content.urgent) R.string.notif_title_urgent else R.string.notif_title)
         val amountLine = ctx.getString(R.string.notif_progress_amount, consumed.grouped(), goalMl.grouped(), percent)
+        val amountBig = ctx.getString(R.string.notif_amount, consumed.grouped(), goalMl.grouped())
         val detail = ctx.getString(R.string.notif_progress_detail, content.suggestedMl.grouped(), content.remainingMl.grouped())
         val body = ctx.getString(R.string.notif_body, content.remainingMl, content.suggestedMl, feasibility)
 
@@ -69,7 +70,7 @@ object NotificationHelper {
             setProgressBar(R.id.notif_bar, 1000, (progress * 1000).toInt(), false)
             setTextViewText(R.id.notif_detail, detail)
             if (big) {
-                setTextViewText(R.id.notif_amount, amountLine)
+                setTextViewText(R.id.notif_amount, amountBig)
                 setTextViewText(R.id.notif_feasibility, feasibility)
             }
         }
@@ -86,19 +87,22 @@ object NotificationHelper {
             R.drawable.ic_stat_drop, ctx.getString(R.string.notif_action_snooze),
             actionIntent(context, ACTION_SNOOZE, content.suggestedMl),
         ).build()
-        val reply = NotificationCompat.Action.Builder(
-            R.drawable.ic_stat_drop, ctx.getString(R.string.notif_action_reply),
-            actionIntent(context, ACTION_REPLY, content.suggestedMl, mutable = true),
-        )
-            .addRemoteInput(
-                RemoteInput.Builder(KEY_REPLY)
-                    .setLabel(ctx.getString(R.string.notif_reply_label))
-                    .setChoices(arrayOf<CharSequence>(ctx.getString(R.string.notif_action_drank), ctx.getString(R.string.notif_action_snooze)))
-                    .build(),
+        // Phone: a plain Reply (inline text). Wearables: the same action with Drank / Snooze quick choices.
+        // Choices are kept off the phone copy so they don't show up as duplicate smart-reply chips.
+        fun replyAction(withChoices: Boolean): NotificationCompat.Action {
+            val input = RemoteInput.Builder(KEY_REPLY).setLabel(ctx.getString(R.string.notif_reply_label))
+            if (withChoices) {
+                input.setChoices(arrayOf<CharSequence>(ctx.getString(R.string.notif_action_drank), ctx.getString(R.string.notif_action_snooze)))
+            }
+            return NotificationCompat.Action.Builder(
+                R.drawable.ic_stat_drop, ctx.getString(R.string.notif_action_reply),
+                actionIntent(context, ACTION_REPLY, content.suggestedMl, mutable = true),
             )
-            .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
-            .setAllowGeneratedReplies(false)
-            .build()
+                .addRemoteInput(input.build())
+                .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+                .setAllowGeneratedReplies(false)
+                .build()
+        }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_drop)
@@ -116,8 +120,8 @@ object NotificationHelper {
             .setOnlyAlertOnce(true)
             .addAction(drank)
             .addAction(snooze)
-            .addAction(reply)
-            .extend(NotificationCompat.WearableExtender().addAction(drank).addAction(snooze).addAction(reply))
+            .addAction(replyAction(withChoices = false))
+            .extend(NotificationCompat.WearableExtender().addAction(drank).addAction(snooze).addAction(replyAction(withChoices = true)))
             .build()
         try {
             manager.notify(NOTIFICATION_ID, notification)
