@@ -14,7 +14,7 @@ for screen in home history settings weigh; do
   sleep 7
   adb exec-out screencap -p > "shots/$screen.png"
   if [ "$screen" = home ] || [ "$screen" = settings ] || [ "$screen" = history ]; then
-    adb shell input swipe 540 1900 540 700 400
+    adb shell input swipe 540 1400 540 300 500
     sleep 2
     adb exec-out screencap -p > "shots/${screen}2.png"
   fi

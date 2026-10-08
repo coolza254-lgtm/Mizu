@@ -121,12 +121,30 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
                         )
                         Text(" $g", style = MaterialTheme.typography.titleMedium, color = MizuColors.InkSoft, modifier = Modifier.padding(bottom = 12.dp))
                     }
+                    val rangeError = weightText.isNotEmpty() && !validWeight
                     val info = when {
-                        weightText.isNotEmpty() && !validWeight -> stringResource(R.string.weight_range_error)
-                        newWater != null -> stringResource(R.string.water_in_bottle, newWater.grouped())
-                        else -> stringResource(R.string.empty_weight_used, (empty ?: 0).grouped())
+                        rangeError -> stringResource(R.string.weight_range_error)
+                        outcome is WeighOutcome.Drink -> stringResource(R.string.preview_drink, outcome.amountMl.grouped())
+                        outcome is WeighOutcome.SetBaseline -> stringResource(R.string.preview_baseline)
+                        outcome is WeighOutcome.AskRefill -> stringResource(R.string.preview_refill)
+                        outcome == WeighOutcome.NoChange -> stringResource(R.string.weigh_no_change)
+                        else -> bottle.currentWaterG?.let { stringResource(R.string.last_water, it.grouped()) }
+                            ?: stringResource(R.string.no_baseline_yet)
                     }
-                    Text(info, style = MaterialTheme.typography.bodyMedium, color = if (weightText.isNotEmpty() && !validWeight) MizuColors.Danger else MizuColors.InkSoft)
+                    if (newWater != null) {
+                        Text(stringResource(R.string.water_in_bottle, newWater.grouped()), style = MaterialTheme.typography.titleMedium, color = MizuColors.Ink)
+                    } else {
+                        Text(stringResource(R.string.empty_weight_used, (empty ?: 0).grouped()), style = MaterialTheme.typography.bodyMedium, color = MizuColors.InkSoft)
+                    }
+                    Text(
+                        info,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = when {
+                            rangeError -> MizuColors.Danger
+                            outcome is WeighOutcome.Drink -> MizuColors.WaterDeep
+                            else -> MizuColors.InkSoft
+                        },
+                    )
                 }
                 BottleGauge(
                     previousWater = bottle.currentWaterG,
@@ -135,33 +153,11 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
                 )
             }
 
-            val preview = when (outcome) {
-                is WeighOutcome.Drink -> stringResource(R.string.preview_drink, outcome.amountMl.grouped())
-                is WeighOutcome.SetBaseline -> stringResource(R.string.preview_baseline)
-                is WeighOutcome.AskRefill -> stringResource(R.string.preview_refill)
-                WeighOutcome.NoChange -> stringResource(R.string.weigh_no_change)
-                WeighOutcome.Invalid, null -> bottle.currentWaterG?.let { stringResource(R.string.last_water, it.grouped()) }
-                    ?: stringResource(R.string.no_baseline_yet)
-            }
-            Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-                Text(
-                    preview,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (outcome is WeighOutcome.Drink) MizuColors.WaterDeep else MizuColors.InkSoft,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(MizuColors.Mist)
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    textAlign = TextAlign.Center,
-                )
-            }
-
             NumberPad(
                 onDigit = { d -> weightText = weightText.pushDigit(d, 5) },
                 onBackspace = { weightText = weightText.dropLast(1) },
                 modifier = Modifier.padding(horizontal = 20.dp),
-                keyHeight = 52.dp,
+                keyHeight = 50.dp,
             )
         }
 
