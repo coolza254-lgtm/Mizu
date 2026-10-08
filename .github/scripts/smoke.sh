@@ -16,7 +16,11 @@ for screen in home history settings weigh; do
 done
 
 # Reminder notification with the progress bar, expanded in the shade.
-adb shell am start -S -W -n $PKG/.MainActivity --ez mizu_notif true
+# Force-stop first and let it settle: a force-stop clears the app's notifications, and the emulator
+# can process it seconds late, which would wipe the notification we are about to post.
+adb shell am force-stop $PKG
+sleep 12
+adb shell am start -W -n $PKG/.MainActivity --ez mizu_notif true
 sleep 4
 adb shell cmd statusbar expand-notifications
 sleep 3
