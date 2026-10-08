@@ -100,7 +100,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
         }
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(bottles, key = { it.id }) { b ->
@@ -131,7 +131,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
                 BottleGauge(
                     previousWater = bottle.currentWaterG,
                     newWater = newWater,
-                    modifier = Modifier.size(width = 78.dp, height = 132.dp),
+                    modifier = Modifier.size(width = 70.dp, height = 116.dp),
                 )
             }
 
@@ -146,13 +146,13 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
             Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                 Text(
                     preview,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = if (outcome is WeighOutcome.Drink) MizuColors.WaterDeep else MizuColors.InkSoft,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(18.dp))
                         .background(MizuColors.Mist)
-                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                     textAlign = TextAlign.Center,
                 )
             }
@@ -161,6 +161,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
                 onDigit = { d -> weightText = weightText.pushDigit(d, 5) },
                 onBackspace = { weightText = weightText.dropLast(1) },
                 modifier = Modifier.padding(horizontal = 20.dp),
+                keyHeight = 52.dp,
             )
         }
 
@@ -219,7 +220,7 @@ private fun BottleChip(bottle: Bottle, selected: Boolean, ml: String, onClick: (
     ) {
         Text(bottle.name, style = MaterialTheme.typography.titleMedium, maxLines = 1)
         Text(
-            bottle.currentWaterG?.let { "≈ ${it.grouped()} $ml" } ?: "—",
+            bottle.currentWaterG?.let { "≈ ${it.grouped()} $ml" } ?: stringResource(R.string.not_weighed),
             style = MaterialTheme.typography.bodyMedium,
             color = MizuColors.InkSoft,
         )

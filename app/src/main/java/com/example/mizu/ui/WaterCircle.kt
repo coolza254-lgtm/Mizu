@@ -101,6 +101,8 @@ fun HeroRing(
                         style = Stroke(stroke, cap = StrokeCap.Round),
                     )
                 }
+                // cover the rounded start cap so the sweep-gradient seam never shows
+                drawCircle(MizuColors.Aqua, stroke / 2f, Offset(c.x, c.y - ringRadius))
                 // knob at the end of the arc
                 val a = (-90f + 360f * level) * (PI / 180f).toFloat()
                 val knob = Offset(c.x + ringRadius * cos(a), c.y + ringRadius * sin(a))
@@ -134,7 +136,7 @@ fun HeroRing(
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            val onWater = level > 0.55f
+            val onWater = level > 0.72f
             Text(
                 shownMl.grouped(),
                 style = MaterialTheme.typography.displayLarge,

@@ -50,10 +50,10 @@
     <string name="daily_totals">日別合計</string>
     <string name="language">言語</string>
     <string name="daily_goal">1日の目標</string>
-    <string name="goal_recommended">推奨（35 ml/kg）</string>
+    <string name="goal_recommended">推奨</string>
     <string name="goal_manual">手動</string>
     <string name="weight_kg">体重</string>
-    <string name="recommended_goal_is">推奨目標：1日 %1$s ml</string>
+    <string name="recommended_goal_is">35 ml/kg · 1日 %1$s ml</string>
     <string name="quick_add_sizes">クイック追加の量 (ml)</string>
     <string name="reminders">リマインダー</string>
     <string name="reminders_enabled">リマインダーを使う</string>
@@ -136,6 +136,7 @@
     <string name="todays_goal">今日の目標</string>
     <string name="tomorrow_at">明日 %1$s</string>
     <string name="total">合計</string>
+    <string name="not_weighed">未計量</string>
     <string name="undo">元に戻す</string>
     <string name="update_idle">新しいバージョンを確認</string>
     <string name="value_range">%1$s〜%2$s %3$s で入力</string>

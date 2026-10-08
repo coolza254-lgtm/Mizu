@@ -50,10 +50,10 @@
     <string name="daily_totals">ยอดรวมรายวัน</string>
     <string name="language">ภาษา</string>
     <string name="daily_goal">เป้าหมายต่อวัน</string>
-    <string name="goal_recommended">แนะนำ (35 ml/กก.)</string>
+    <string name="goal_recommended">แนะนำ</string>
     <string name="goal_manual">กำหนดเอง</string>
     <string name="weight_kg">น้ำหนักตัว</string>
-    <string name="recommended_goal_is">เป้าแนะนำ %1$s ml ต่อวัน</string>
+    <string name="recommended_goal_is">35 ml/กก. · %1$s ml ต่อวัน</string>
     <string name="quick_add_sizes">ปุ่มเพิ่มด่วน (ml)</string>
     <string name="reminders">การเตือน</string>
     <string name="reminders_enabled">เปิดการเตือน</string>
@@ -136,6 +136,7 @@
     <string name="todays_goal">เป้าหมายวันนี้</string>
     <string name="tomorrow_at">พรุ่งนี้ %1$s</string>
     <string name="total">รวม</string>
+    <string name="not_weighed">ยังไม่ได้ชั่ง</string>
     <string name="undo">เลิกทำ</string>
     <string name="update_idle">แตะเพื่อตรวจหาเวอร์ชันใหม่</string>
     <string name="value_range">ใส่ค่า %1$s–%2$s %3$s</string>

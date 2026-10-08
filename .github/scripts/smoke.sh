@@ -13,6 +13,11 @@ for screen in home history settings weigh; do
   adb shell am start -S -W -n $PKG/.MainActivity --es mizu_screen "$screen" --ez mizu_demo true
   sleep 7
   adb exec-out screencap -p > "shots/$screen.png"
+  if [ "$screen" = home ] || [ "$screen" = settings ] || [ "$screen" = history ]; then
+    adb shell input swipe 540 1900 540 700 400
+    sleep 2
+    adb exec-out screencap -p > "shots/${screen}2.png"
+  fi
 done
 
 sleep 3

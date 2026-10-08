@@ -50,10 +50,10 @@
     <string name="daily_totals">Daily totals</string>
     <string name="language">Language</string>
     <string name="daily_goal">Daily goal</string>
-    <string name="goal_recommended">Recommended (35 ml/kg)</string>
+    <string name="goal_recommended">Recommended</string>
     <string name="goal_manual">Custom</string>
     <string name="weight_kg">Body weight</string>
-    <string name="recommended_goal_is">Recommended goal: %1$s ml per day</string>
+    <string name="recommended_goal_is">35 ml/kg · %1$s ml a day</string>
     <string name="quick_add_sizes">Quick-add sizes (ml)</string>
     <string name="reminders">Reminders</string>
     <string name="reminders_enabled">Remind me to drink</string>
@@ -136,6 +136,7 @@
     <string name="todays_goal">Today\'s goal</string>
     <string name="tomorrow_at">Tomorrow %1$s</string>
     <string name="total">Total</string>
+    <string name="not_weighed">Not weighed yet</string>
     <string name="undo">Undo</string>
     <string name="update_idle">Look for a newer version</string>
     <string name="value_range">Enter %1$s–%2$s %3$s</string>

@@ -371,24 +371,24 @@ fun <T> PillSelector(options: List<Pair<T, String>>, selected: T, onSelect: (T) 
 
 /** Large custom keypad: big round keys, a tick on every press. */
 @Composable
-fun NumberPad(onDigit: (Int) -> Unit, onBackspace: () -> Unit, modifier: Modifier = Modifier) {
+fun NumberPad(onDigit: (Int) -> Unit, onBackspace: () -> Unit, modifier: Modifier = Modifier, keyHeight: Dp = 60.dp) {
     val rows = listOf(listOf(1, 2, 3), listOf(4, 5, 6), listOf(7, 8, 9), listOf(-1, 0, -2))
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         rows.forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { key ->
-                    Box(Modifier.weight(1f).height(60.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.weight(1f).height(keyHeight), contentAlignment = Alignment.Center) {
                         when (key) {
                             -1 -> Unit
                             -2 -> Box(
-                                Modifier.fillMaxWidth().height(60.dp).clip(RoundedCornerShape(20.dp))
+                                Modifier.fillMaxWidth().height(keyHeight).clip(RoundedCornerShape(20.dp))
                                     .bouncyClick(haptic = HapticKind.TICK, onClick = onBackspace),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(Icons.AutoMirrored.Rounded.Backspace, stringResource(R.string.delete), tint = MizuColors.InkSoft)
                             }
                             else -> Box(
-                                Modifier.fillMaxWidth().height(60.dp).clip(RoundedCornerShape(20.dp))
+                                Modifier.fillMaxWidth().height(keyHeight).clip(RoundedCornerShape(20.dp))
                                     .background(MizuColors.Mist)
                                     .bouncyClick(haptic = HapticKind.TICK) { onDigit(key) },
                                 contentAlignment = Alignment.Center,
