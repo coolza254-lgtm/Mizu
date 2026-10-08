@@ -36,7 +36,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mizu.R
-import com.example.mizu.util.localized
+import com.example.mizu.util.localizedWrapper
 
 private enum class Tab { HOME, HISTORY, SETTINGS }
 
@@ -54,7 +54,7 @@ fun MizuRoot(vm: MizuViewModel = viewModel()) {
             return@MizuTheme
         }
         // Re-resolve resources whenever the language changes: no activity restart needed.
-        val localized = remember(s.language, base) { base.localized(s.language) }
+        val localized = remember(s.language, base) { base.localizedWrapper(s.language) }
         CompositionLocalProvider(
             LocalContext provides localized,
             LocalConfiguration provides localized.resources.configuration,
