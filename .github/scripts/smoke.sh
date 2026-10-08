@@ -13,12 +13,16 @@ for screen in home history settings weigh; do
   adb shell am start -S -W -n $PKG/.MainActivity --es mizu_screen "$screen" --ez mizu_demo true
   sleep 7
   adb exec-out screencap -p > "shots/$screen.png"
-  if [ "$screen" = home ] || [ "$screen" = settings ] || [ "$screen" = history ]; then
-    adb shell input swipe 540 1400 540 300 500
-    sleep 2
-    adb exec-out screencap -p > "shots/${screen}2.png"
-  fi
 done
+
+# Full-length views: make the screen very tall so a whole scrolling page fits in one capture.
+adb shell wm size 1080x4200
+for screen in home history settings; do
+  adb shell am start -S -W -n $PKG/.MainActivity --es mizu_screen "$screen" --ez mizu_demo true
+  sleep 7
+  adb exec-out screencap -p > "shots/${screen}_full.png"
+done
+adb shell wm size reset
 
 sleep 3
 adb logcat -d -b crash > crash.txt
