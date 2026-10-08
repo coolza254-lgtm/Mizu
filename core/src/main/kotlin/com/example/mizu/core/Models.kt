@@ -43,6 +43,7 @@ data class MizuSettings(
     val snoozeMinutes: Int = 10,
     val language: AppLanguage = AppLanguage.TH,
     val remindersEnabled: Boolean = true,
+    val hapticsEnabled: Boolean = true,
 ) {
     /** The goal actually in effect for the chosen [goalMode]. */
     val goalMl: Int

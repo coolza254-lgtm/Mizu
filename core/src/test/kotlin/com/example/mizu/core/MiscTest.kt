@@ -51,6 +51,17 @@ class GoalTest {
     }
 
     @Test
+    fun streakCountsConsecutiveGoalDays() {
+        val today = LocalDate.of(2026, 10, 8)
+        fun log(daysAgo: Long, ml: Int) = DrinkLog(timestamp = today.minusDays(daysAgo).atTime(10, 0), amountMl = ml, source = DrinkSource.QUICK)
+        val logs = listOf(log(1, 2000), log(2, 1500), log(2, 600), log(3, 2000), log(5, 2000))
+        // today not reached yet -> count from yesterday: days 1, 2, 3 (day 4 missing breaks it)
+        assertEquals(3, GoalCalculator.streakDays(logs, 2000, today))
+        assertEquals(4, GoalCalculator.streakDays(logs + log(0, 2000), 2000, today))
+        assertEquals(0, GoalCalculator.streakDays(emptyList(), 2000, today))
+    }
+
+    @Test
     fun progressIsCappedAtOne() {
         assertEquals(0.5f, GoalCalculator.progress(1000, 2000))
         assertEquals(1f, GoalCalculator.progress(3000, 2000))

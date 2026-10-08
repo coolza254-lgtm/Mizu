@@ -9,6 +9,7 @@ import com.example.mizu.core.Bottle
 import com.example.mizu.core.DrinkLog
 import com.example.mizu.core.DrinkSource
 import com.example.mizu.core.MizuSettings
+import com.example.mizu.core.ReminderEngine
 import com.example.mizu.core.WeighCalculator
 import com.example.mizu.core.WeighOutcome
 import com.example.mizu.update.UpdateState
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -52,6 +54,13 @@ class MizuViewModel(app: Application) : AndroidViewModel(app) {
         .map<Boolean, Boolean?> { it }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    /** When the next reminder is planned, or null when reminders are off. */
+    val nextReminderAt: StateFlow<LocalDateTime?> = combine(
+        c.settings.settings, c.repository.logs, c.settings.reminderState, now,
+    ) { s, logs, state, t ->
+        ReminderEngine.nextReminder(t, s, logs, state.lastReminderAt, state.snoozeUntil)?.at
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
 
@@ -66,9 +75,34 @@ class MizuViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- logging ----
 
-    fun quickAdd(ml: Int) = viewModelScope.launch { c.repository.addLog(ml, DrinkSource.QUICK) }
+    /** Adds a drink; [onAdded] gets the new log id (for undo). */
+    fun addDrink(ml: Int, source: DrinkSource, onAdded: (Long) -> Unit = {}) = viewModelScope.launch {
+        val id = c.repository.addLog(ml, source)
+        if (id > 0) onAdded(id)
+    }
 
-    fun manualAdd(ml: Int) = viewModelScope.launch { c.repository.addLog(ml, DrinkSource.MANUAL) }
+    fun restoreLog(log: DrinkLog) = viewModelScope.launch { c.repository.restoreLog(log) }
+
+    /** Debug builds only (see MainActivity): sample history so screenshots show real-looking data. */
+    fun seedDemo() = viewModelScope.launch {
+        val today = LocalDate.now()
+        val pattern = listOf(
+            8 to 300, 10 to 250, 12 to 500, 14 to 250, 16 to 350, 18 to 300, 20 to 250,
+        )
+        val logs = (1L..13L).flatMap { daysAgo ->
+            val day = today.minusDays(daysAgo)
+            val keep = pattern.size - (daysAgo % 3).toInt()
+            pattern.take(keep).map { (h, ml) ->
+                DrinkLog(timestamp = day.atTime(h, (daysAgo * 7 % 50).toInt()), amountMl = ml, source = DrinkSource.QUICK)
+            }
+        } + listOf(
+            DrinkLog(timestamp = today.atTime(8, 5), amountMl = 250, source = DrinkSource.QUICK),
+            DrinkLog(timestamp = today.atTime(9, 40), amountMl = 320, source = DrinkSource.WEIGH, bottleId = 1, weightBeforeG = 900, weightAfterG = 580),
+            DrinkLog(timestamp = today.atTime(11, 15), amountMl = 500, source = DrinkSource.QUICK),
+            DrinkLog(timestamp = today.atTime(12, 30), amountMl = 150, source = DrinkSource.MANUAL),
+        ).filter { !it.timestamp.isAfter(LocalDateTime.now()) || it.timestamp.toLocalDate() != today }
+        c.repository.seedDemo(logs)
+    }
 
     fun editLog(id: Long, ml: Int) = viewModelScope.launch { c.repository.updateLogAmount(id, ml) }
 

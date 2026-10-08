@@ -29,14 +29,29 @@ class MizuRepository(
         }
     }
 
-    suspend fun addLog(amountMl: Int, source: DrinkSource, at: LocalDateTime = LocalDateTime.now()) {
-        if (amountMl <= 0) return
-        dao.insertLog(
+    /** @return the new log id, or -1 when [amountMl] is not positive. */
+    suspend fun addLog(amountMl: Int, source: DrinkSource, at: LocalDateTime = LocalDateTime.now()): Long {
+        if (amountMl <= 0) return -1
+        val id = dao.insertLog(
             DrinkLogEntity(
                 timestamp = at.toEpochMs(), amountMl = amountMl, source = source.name,
                 bottleId = null, weightBeforeG = null, weightAfterG = null,
             ),
         )
+        onLogsChanged()
+        return id
+    }
+
+    /** Puts back a deleted log (undo). */
+    suspend fun restoreLog(log: DrinkLog) {
+        dao.insertLog(log.toEntity())
+        onLogsChanged()
+    }
+
+    /** Debug builds only: fills an empty database with sample days for screenshots. */
+    suspend fun seedDemo(logs: List<DrinkLog>) {
+        if (dao.allLogs().isNotEmpty()) return
+        logs.forEach { dao.insertLog(it.toEntity().copy(id = 0)) }
         onLogsChanged()
     }
 

@@ -37,6 +37,7 @@ class SettingsRepository(context: Context) {
         val snooze = intPreferencesKey("snooze_min")
         val language = stringPreferencesKey("language")
         val remindersEnabled = booleanPreferencesKey("reminders_enabled")
+        val haptics = booleanPreferencesKey("haptics_enabled")
         val lastReminder = longPreferencesKey("last_reminder_ms")
         val snoozeUntil = longPreferencesKey("snooze_until_ms")
         val notifPrompted = booleanPreferencesKey("notification_prompted")
@@ -66,6 +67,7 @@ class SettingsRepository(context: Context) {
             prefs[Keys.snooze] = next.snoozeMinutes
             prefs[Keys.language] = next.language.name
             prefs[Keys.remindersEnabled] = next.remindersEnabled
+            prefs[Keys.haptics] = next.hapticsEnabled
         }
     }
 
@@ -102,6 +104,7 @@ class SettingsRepository(context: Context) {
             snoozeMinutes = this[Keys.snooze] ?: d.snoozeMinutes,
             language = this[Keys.language]?.let { runCatching { AppLanguage.valueOf(it) }.getOrNull() } ?: d.language,
             remindersEnabled = this[Keys.remindersEnabled] ?: d.remindersEnabled,
+            hapticsEnabled = this[Keys.haptics] ?: d.hapticsEnabled,
         )
     }
 }

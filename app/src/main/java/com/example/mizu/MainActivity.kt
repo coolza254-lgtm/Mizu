@@ -10,6 +10,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { MizuRoot() }
+        // Debug-only extras used by the CI screenshot job; ignored in release builds.
+        val startScreen = if (BuildConfig.DEBUG) intent.getStringExtra("mizu_screen") else null
+        val demo = BuildConfig.DEBUG && intent.getBooleanExtra("mizu_demo", false)
+        setContent { MizuRoot(startScreen = startScreen, demo = demo) }
     }
 }
