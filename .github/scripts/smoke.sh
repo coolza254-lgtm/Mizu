@@ -16,7 +16,7 @@ for screen in home history settings weigh; do
 done
 
 # Full-screen alarm reminder.
-adb shell am start -W -n $PKG/.MainActivity --ez mizu_alarm true
+adb shell am start -S -W -n $PKG/.MainActivity --ez mizu_alarm true
 sleep 5
 adb exec-out screencap -p > "shots/alarm.png"
 adb shell input keyevent KEYCODE_BACK
