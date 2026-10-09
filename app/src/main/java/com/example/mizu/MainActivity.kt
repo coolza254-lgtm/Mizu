@@ -32,6 +32,15 @@ class MainActivity : ComponentActivity() {
                 goalMl = 2100,
             )
         }
+        if (BuildConfig.DEBUG && intent.getBooleanExtra("mizu_alarm", false)) {
+            // Sample alarm-level reminder so CI can screenshot the full-screen alarm.
+            startActivity(
+                NotificationHelper.alarmIntent(
+                    this,
+                    ReminderContent(remainingMl = 1300, suggestedMl = 300, feasibility = Feasibility.TIGHT, urgent = false, deficitMl = 850),
+                ),
+            )
+        }
         if (savedInstanceState == null) handleQuick(intent)
         setContent { MizuRoot(startScreen = startScreen, demo = demo, quickRequest = quickRequest.value) }
     }

@@ -105,8 +105,10 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
     val undoText = stringResource(R.string.undo)
     val filledText = stringResource(R.string.toast_filled)
 
+    val sounds = LocalSounds.current
     fun add(ml: Int, source: DrinkSource) {
         vm.addDrink(ml, source) { id ->
+            sounds.drop()
             toast.show(String.format(addedText, ml.grouped()), undoText) { vm.deleteLog(id) }
         }
     }
@@ -152,6 +154,7 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
                 onWeigh = onWeigh,
                 onFill = { b ->
                     vm.fillBottle(b.id)
+                    sounds.fill()
                     toast.show(String.format(filledText, (b.capacityMl ?: 0).grouped()))
                 },
             )
@@ -161,22 +164,6 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
                 StatTile(Icons.Rounded.Opacity, remaining.grouped(), stringResource(R.string.stat_remaining, unit), Modifier.weight(1f))
                 StatTile(Icons.Rounded.LocalDrink, todayLogs.size.toString(), stringResource(R.string.stat_drinks), Modifier.weight(1f))
                 StatTile(Icons.Rounded.LocalFireDepartment, streak.toString(), stringResource(R.string.stat_streak), Modifier.weight(1f))
-            }
-        }
-        item {
-            SectionLabel(stringResource(R.string.quick_add)) {
-                Pill(
-                    stringResource(R.string.manual_add),
-                    Modifier.bouncyClick(haptic = HapticKind.TICK) { sheet = AmountSheetTarget.New },
-                    icon = Icons.Rounded.Tune,
-                )
-            }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                s.quickAddSizes.take(3).forEachIndexed { i, size ->
-                    QuickAddTile(size, unit, iconSize = (20 + i * 6).dp, Modifier.weight(1f)) { add(size, DrinkSource.QUICK) }
-                }
             }
         }
         item {
@@ -200,9 +187,15 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
         }
         item {
             SectionLabel(stringResource(R.string.today_log)) {
-                if (todayLogs.isNotEmpty()) {
-                    Text(stringResource(R.string.swipe_hint), style = MaterialTheme.typography.labelSmall, color = MizuColors.InkFaint)
-                }
+                Pill(
+                    "+ " + stringResource(R.string.manual_add),
+                    Modifier.bouncyClick(haptic = HapticKind.TICK) { sheet = AmountSheetTarget.New },
+                    background = androidx.compose.ui.graphics.Color.White,
+                    color = MizuColors.Ink,
+                )
+            }
+            if (todayLogs.isNotEmpty()) {
+                Text(stringResource(R.string.swipe_hint), style = MaterialTheme.typography.labelSmall, color = MizuColors.InkFaint, modifier = Modifier.padding(start = 4.dp))
             }
         }
         if (todayLogs.isEmpty()) {
@@ -388,7 +381,7 @@ private fun BottleCard(bottle: Bottle?, forecast: BottleForecast?, unit: String,
                 previousWater = bottle?.currentWaterG,
                 newWater = null,
                 capacityMl = bottle?.capacityMl,
-                modifier = Modifier.size(width = 56.dp, height = 92.dp),
+                modifier = Modifier.size(width = 50.dp, height = 104.dp),
             )
             Column(Modifier.weight(1f).padding(start = 18.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(

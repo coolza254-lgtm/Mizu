@@ -126,6 +126,21 @@ class MizuViewModel(app: Application) : AndroidViewModel(app) {
         c.scheduler.reschedule()
     }
 
+    /** Shows a sample reminder at [level] so the user can feel each strength. */
+    fun testReminder(level: com.example.mizu.core.ReminderLevel) = viewModelScope.launch {
+        val s = c.settings.settings.first()
+        val deficit = when (level) {
+            com.example.mizu.core.ReminderLevel.GENTLE -> 150
+            com.example.mizu.core.ReminderLevel.STRONG -> s.strongDeficitMl
+            com.example.mizu.core.ReminderLevel.ALARM -> s.alarmDeficitMl
+        }
+        val content = com.example.mizu.core.ReminderContent(
+            remainingMl = (deficit + 400).coerceAtMost(s.goalMl), suggestedMl = 250,
+            feasibility = com.example.mizu.core.Feasibility.TIGHT, urgent = false, deficitMl = deficit, level = level,
+        )
+        com.example.mizu.reminder.NotificationHelper.show(getApplication(), s.language, content, s.goalMl)
+    }
+
     fun fillBottle(id: Long) = viewModelScope.launch { c.repository.fillBottle(id) }
 
     /** Refill the bottle in use; [onDone] gets it, or null when its capacity isn't known yet. */

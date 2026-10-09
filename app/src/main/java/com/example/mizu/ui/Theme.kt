@@ -6,6 +6,10 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.font.Font
+import com.example.mizu.R
+import com.example.mizu.core.AppFont
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -72,30 +76,46 @@ private val Shape = Shapes(
     extraLarge = RoundedCornerShape(40.dp),
 )
 
-// System fonts are the Noto family. Display text is serif (Noto Serif; Thai/Japanese fall back to the
-// matching Noto face), body text sans, and small meta labels monospace, like an editorial layout.
-private val Sans = FontFamily.SansSerif
-private val Serif = FontFamily.Serif
+// Type families bundled in res/font (SIL Open Font License, see third_party/fonts). Japanese text falls back
+// to the system Noto CJK font. EDITORIAL keeps the system serif/sans pairing.
+private val Plex = FontFamily(Font(R.font.plex_regular, FontWeight.Normal), Font(R.font.plex_semibold, FontWeight.SemiBold), Font(R.font.plex_semibold, FontWeight.Bold))
+private val Prompt = FontFamily(Font(R.font.prompt_regular, FontWeight.Normal), Font(R.font.prompt_semibold, FontWeight.SemiBold), Font(R.font.prompt_semibold, FontWeight.Bold))
+private val Sarabun = FontFamily(Font(R.font.sarabun_regular, FontWeight.Normal), Font(R.font.sarabun_bold, FontWeight.SemiBold), Font(R.font.sarabun_bold, FontWeight.Bold))
+private val Mali = FontFamily(Font(R.font.mali_regular, FontWeight.Normal), Font(R.font.mali_semibold, FontWeight.SemiBold), Font(R.font.mali_semibold, FontWeight.Bold))
 private const val TABULAR = "tnum"
+
+/** Display (numbers, headings) and body families for each choice. */
+fun AppFont.families(): Pair<FontFamily, FontFamily> = when (this) {
+    AppFont.EDITORIAL -> FontFamily.Serif to FontFamily.SansSerif
+    AppFont.PLEX -> Plex to Plex
+    AppFont.PROMPT -> Prompt to Prompt
+    AppFont.SARABUN -> Sarabun to Sarabun
+    AppFont.MALI -> Mali to Mali
+}
 
 /** Small monospace meta label ("mizu / today"). */
 val MonoLabel = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.2.sp)
 
-private val Type = Typography(
-    displayLarge = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Normal, fontSize = 56.sp, lineHeight = 62.sp, letterSpacing = (-1).sp, fontFeatureSettings = TABULAR),
-    displayMedium = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Normal, fontSize = 42.sp, lineHeight = 50.sp, letterSpacing = (-0.6).sp, fontFeatureSettings = TABULAR),
-    headlineMedium = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 30.sp, lineHeight = 38.sp, letterSpacing = (-0.4).sp),
-    headlineSmall = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 32.sp, fontFeatureSettings = TABULAR),
-    titleLarge = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 28.sp, fontFeatureSettings = TABULAR),
-    titleMedium = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 24.sp, fontFeatureSettings = TABULAR),
-    bodyLarge = TextStyle(fontFamily = Sans, fontSize = 16.sp, lineHeight = 25.sp),
-    bodyMedium = TextStyle(fontFamily = Sans, fontSize = 14.sp, lineHeight = 21.sp),
-    labelLarge = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 20.sp),
-    labelMedium = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 18.sp, letterSpacing = 0.4.sp),
-    labelSmall = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 16.sp, letterSpacing = 0.6.sp),
-)
+private fun typography(font: AppFont): Typography {
+    val (display, body) = font.families()
+    val displayWeight = if (font == AppFont.EDITORIAL) FontWeight.Normal else FontWeight.SemiBold
+    return Typography(
+        displayLarge = TextStyle(fontFamily = display, fontWeight = displayWeight, fontSize = 56.sp, lineHeight = 64.sp, letterSpacing = (-1).sp, fontFeatureSettings = TABULAR),
+        displayMedium = TextStyle(fontFamily = display, fontWeight = displayWeight, fontSize = 42.sp, lineHeight = 52.sp, letterSpacing = (-0.6).sp, fontFeatureSettings = TABULAR),
+        headlineMedium = TextStyle(fontFamily = display, fontWeight = FontWeight.Bold, fontSize = 30.sp, lineHeight = 40.sp, letterSpacing = (-0.4).sp),
+        headlineSmall = TextStyle(fontFamily = display, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 32.sp, fontFeatureSettings = TABULAR),
+        titleLarge = TextStyle(fontFamily = display, fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 28.sp, fontFeatureSettings = TABULAR),
+        titleMedium = TextStyle(fontFamily = body, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 24.sp, fontFeatureSettings = TABULAR),
+        bodyLarge = TextStyle(fontFamily = body, fontSize = 16.sp, lineHeight = 25.sp),
+        bodyMedium = TextStyle(fontFamily = body, fontSize = 14.sp, lineHeight = 21.sp),
+        labelLarge = TextStyle(fontFamily = body, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 20.sp),
+        labelMedium = TextStyle(fontFamily = body, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 18.sp, letterSpacing = 0.4.sp),
+        labelSmall = TextStyle(fontFamily = body, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 16.sp, letterSpacing = 0.6.sp),
+    )
+}
 
 @Composable
-fun MizuTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Scheme, shapes = Shape, typography = Type, content = content)
+fun MizuTheme(font: AppFont = AppFont.EDITORIAL, content: @Composable () -> Unit) {
+    val type = remember(font) { typography(font) }
+    MaterialTheme(colorScheme = Scheme, shapes = Shape, typography = type, content = content)
 }

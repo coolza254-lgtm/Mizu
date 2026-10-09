@@ -16,7 +16,7 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
         val now = LocalDateTime.now()
         val settings = c.settings.settings.first()
         val logs = c.dao.logsSince(now.toLocalDate().atStartOfDay().toEpochMs()).map { it.toModel() }
-        val content = ReminderEngine.contentAt(now, settings, logs.sumOf { it.amountMl })
+        val content = ReminderEngine.contentAt(now, settings, logs.sumOf { it.amountMl }, logs.maxOfOrNull { it.timestamp })
 
         // Re-check at fire time: the goal may have been reached, or the job may have been delayed past the window.
         if (settings.remindersEnabled && content != null && ReminderEngine.isWithinWindow(now, settings)) {

@@ -8,7 +8,9 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.mizu.core.AppFont
 import com.example.mizu.core.AppLanguage
+import com.example.mizu.core.ReminderMode
 import com.example.mizu.core.GoalMode
 import com.example.mizu.core.MizuSettings
 import com.example.mizu.util.toEpochMs
@@ -38,6 +40,16 @@ class SettingsRepository(context: Context) {
         val language = stringPreferencesKey("language")
         val remindersEnabled = booleanPreferencesKey("reminders_enabled")
         val haptics = booleanPreferencesKey("haptics_enabled")
+        val sound = booleanPreferencesKey("sound_enabled")
+        val font = stringPreferencesKey("font")
+        val mode = stringPreferencesKey("reminder_mode")
+        val baseInterval = intPreferencesKey("base_interval_min")
+        val minInterval = intPreferencesKey("min_interval_min")
+        val escalation = intPreferencesKey("escalation_ml")
+        val strongDeficit = intPreferencesKey("strong_deficit_ml")
+        val dryMinutes = intPreferencesKey("dry_minutes")
+        val alarmEnabled = booleanPreferencesKey("alarm_enabled")
+        val alarmDeficit = intPreferencesKey("alarm_deficit_ml")
         val lastReminder = longPreferencesKey("last_reminder_ms")
         val snoozeUntil = longPreferencesKey("snooze_until_ms")
         val notifPrompted = booleanPreferencesKey("notification_prompted")
@@ -68,6 +80,16 @@ class SettingsRepository(context: Context) {
             prefs[Keys.language] = next.language.name
             prefs[Keys.remindersEnabled] = next.remindersEnabled
             prefs[Keys.haptics] = next.hapticsEnabled
+            prefs[Keys.sound] = next.soundEnabled
+            prefs[Keys.font] = next.font.name
+            prefs[Keys.mode] = next.reminderMode.name
+            prefs[Keys.baseInterval] = next.baseIntervalMin
+            prefs[Keys.minInterval] = next.minIntervalMin
+            prefs[Keys.escalation] = next.escalationMl
+            prefs[Keys.strongDeficit] = next.strongDeficitMl
+            prefs[Keys.dryMinutes] = next.dryMinutes
+            prefs[Keys.alarmEnabled] = next.alarmEnabled
+            prefs[Keys.alarmDeficit] = next.alarmDeficitMl
         }
     }
 
@@ -105,6 +127,16 @@ class SettingsRepository(context: Context) {
             language = this[Keys.language]?.let { runCatching { AppLanguage.valueOf(it) }.getOrNull() } ?: d.language,
             remindersEnabled = this[Keys.remindersEnabled] ?: d.remindersEnabled,
             hapticsEnabled = this[Keys.haptics] ?: d.hapticsEnabled,
+            soundEnabled = this[Keys.sound] ?: d.soundEnabled,
+            font = this[Keys.font]?.let { runCatching { AppFont.valueOf(it) }.getOrNull() } ?: d.font,
+            reminderMode = this[Keys.mode]?.let { runCatching { ReminderMode.valueOf(it) }.getOrNull() } ?: d.reminderMode,
+            baseIntervalMin = this[Keys.baseInterval] ?: d.baseIntervalMin,
+            minIntervalMin = this[Keys.minInterval] ?: d.minIntervalMin,
+            escalationMl = this[Keys.escalation] ?: d.escalationMl,
+            strongDeficitMl = this[Keys.strongDeficit] ?: d.strongDeficitMl,
+            dryMinutes = this[Keys.dryMinutes] ?: d.dryMinutes,
+            alarmEnabled = this[Keys.alarmEnabled] ?: d.alarmEnabled,
+            alarmDeficitMl = this[Keys.alarmDeficit] ?: d.alarmDeficitMl,
         )
     }
 }

@@ -46,7 +46,7 @@ class ReminderActionReceiver : BroadcastReceiver() {
 }
 
 /** A snooze is not a drink: nothing is logged, the reminder just moves later. */
-private suspend fun snooze(c: com.example.mizu.AppContainer) {
+internal suspend fun snooze(c: com.example.mizu.AppContainer) {
     val minutes = c.settings.settings.first().snoozeMinutes
     val now = LocalDateTime.now()
     c.settings.snooze(now, now.plusMinutes(minutes.toLong()))

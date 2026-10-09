@@ -1,6 +1,7 @@
 package com.example.mizu.ui
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -63,6 +64,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
     val s = settings ?: return
     val bottles = allBottles.filter { it.isActive }
     val haptics = LocalHaptics.current
+    val sounds = LocalSounds.current
     val ml = stringResource(R.string.unit_ml)
     val g = stringResource(R.string.unit_g)
 
@@ -90,6 +92,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
             WeighOutcome.NoChange, WeighOutcome.Invalid -> return
         }
         haptics.success()
+        if (result is WeighOutcome.Drink) sounds.drop() else sounds.fill()
         vm.commitWeigh(b.id, result)
         weightText = ""
     }
@@ -159,7 +162,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
                 BottleGauge(
                     previousWater = bottle.currentWaterG,
                     newWater = newWater,
-                    modifier = Modifier.size(width = 70.dp, height = 116.dp),
+                    modifier = Modifier.size(width = 62.dp, height = 128.dp),
                     capacityMl = bottle.capacityMl?.let { maxOf(it, newWater ?: 0) },
                 )
             }
@@ -236,36 +239,107 @@ private fun BottleChip(bottle: Bottle, selected: Boolean, ml: String, onClick: (
     }
 }
 
-/** A little bottle that fills to the new water level (or the last known one), scaled to [capacityMl] when known. */
+/**
+ * The user's tumbler as a cartoon: tapered charcoal cup with a flip lid, a see-through body showing the water
+ * level (with a gently moving surface) and a small happy face. Scaled to [capacityMl] when known.
+ */
 @Composable
 fun BottleGauge(previousWater: Int?, newWater: Int?, modifier: Modifier = Modifier, capacityMl: Int? = null) {
     val capacity = (capacityMl?.takeIf { it > 0 } ?: maxOf(previousWater ?: 0, newWater ?: 0, 1000)).toFloat()
     val target = ((newWater ?: previousWater ?: 0) / capacity).coerceIn(0f, 1f)
-    val level by animateFloatAsState(target, tween(600, easing = FastOutSlowInEasing), label = "bottle")
+    val level by animateFloatAsState(target, tween(700, easing = FastOutSlowInEasing), label = "cup")
     val prevMark = previousWater?.let { (it / capacity).coerceIn(0f, 1f) }
+    val wave = androidx.compose.animation.core.rememberInfiniteTransition(label = "cupWave")
+    val phase by wave.animateFloat(
+        0f, (2 * Math.PI).toFloat(),
+        androidx.compose.animation.core.infiniteRepeatable(tween(2600, easing = androidx.compose.animation.core.LinearEasing)),
+        label = "cupPhase",
+    )
+    val charcoal = Color(0xFF3B4048)
+    val glass = Color(0xFF5A616B)
+
     Canvas(modifier) {
         val w = size.width
         val h = size.height
-        val neckW = w * 0.42f
-        val neckH = h * 0.12f
-        val body = RoundRect(0f, neckH, w, h, CornerRadius(w * 0.28f, w * 0.28f))
-        val bodyPath = Path().apply { addRoundRect(body) }
-        // cap
-        drawRoundRect(MizuColors.Ink, Offset((w - neckW) / 2f, 0f), Size(neckW, neckH * 0.9f), CornerRadius(8.dp.toPx(), 8.dp.toPx()))
-        drawPath(bodyPath, Color.White)
-        clipPath(bodyPath) {
-            val top = h - (h - neckH) * level
-            drawRect(
-                MizuColors.Water,
-                topLeft = Offset(0f, top),
-                size = Size(w, h - top),
+        val stroke = 2.dp.toPx()
+        val lidTop = h * 0.07f
+        val lidBottom = h * 0.19f
+        val topW = w * 0.90f
+        val botW = w * 0.74f
+        val r = w * 0.12f
+        val left = (w - topW) / 2f
+        val right = left + topW
+        val bl = (w - botW) / 2f
+        val br = bl + botW
+
+        // body: a tapered cup with rounded bottom corners
+        val body = Path().apply {
+            moveTo(left, lidBottom)
+            lineTo(right, lidBottom)
+            lineTo(br, h - r)
+            quadraticBezierTo(br, h, br - r, h)
+            lineTo(bl + r, h)
+            quadraticBezierTo(bl, h, bl, h - r)
+            close()
+        }
+        drawPath(body, glass)
+        clipPath(body) {
+            val fillTop = h - (h - lidBottom) * level
+            val amp = if (level <= 0f || level >= 0.99f) 0f else 2.5.dp.toPx()
+            val water = Path().apply {
+                moveTo(0f, h)
+                lineTo(0f, fillTop)
+                var x = 0f
+                while (x <= w) {
+                    lineTo(x, fillTop + amp * kotlin.math.sin(x / w * 2f * Math.PI.toFloat() * 1.3f + phase))
+                    x += 3f
+                }
+                lineTo(w, h)
+                close()
+            }
+            drawPath(water, MizuColors.Water)
+            // highlight stripe
+            drawRoundRect(
+                Color.White.copy(alpha = 0.28f),
+                Offset(left + w * 0.10f, lidBottom + h * 0.06f),
+                Size(w * 0.07f, (h - lidBottom) * 0.62f),
+                CornerRadius(w * 0.04f, w * 0.04f),
             )
             if (prevMark != null && newWater != null) {
-                val y = h - (h - neckH) * prevMark
-                drawLine(MizuColors.Ink.copy(alpha = 0.35f), Offset(0f, y), Offset(w, y), strokeWidth = 2.dp.toPx())
+                val y = h - (h - lidBottom) * prevMark
+                drawLine(
+                    Color.White, Offset(0f, y), Offset(w, y), strokeWidth = 1.5.dp.toPx(),
+                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())),
+                )
             }
         }
-        drawPath(bodyPath, MizuColors.Ink, style = Stroke(2.dp.toPx()))
+        drawPath(body, MizuColors.Ink, style = Stroke(stroke))
+
+        // lid with the flip nub
+        val lidW = w * 0.96f
+        val lidLeft = (w - lidW) / 2f
+        drawRoundRect(charcoal, Offset(lidLeft, lidTop), Size(lidW, lidBottom - lidTop), CornerRadius(w * 0.08f, w * 0.08f))
+        drawRoundRect(MizuColors.Ink, Offset(lidLeft, lidTop), Size(lidW, lidBottom - lidTop), CornerRadius(w * 0.08f, w * 0.08f), style = Stroke(stroke))
+        val nubW = w * 0.30f
+        drawRoundRect(charcoal, Offset(w * 0.40f, 0f), Size(nubW, lidTop + stroke), CornerRadius(w * 0.05f, w * 0.05f))
+        drawRoundRect(MizuColors.Ink, Offset(w * 0.40f, 0f), Size(nubW, lidTop + stroke), CornerRadius(w * 0.05f, w * 0.05f), style = Stroke(stroke))
+        drawLine(Color.White.copy(alpha = 0.35f), Offset(lidLeft + w * 0.08f, lidTop + (lidBottom - lidTop) * 0.35f), Offset(lidLeft + w * 0.32f, lidTop + (lidBottom - lidTop) * 0.35f), strokeWidth = 1.5.dp.toPx())
+
+        // happy face
+        val faceY = lidBottom + (h - lidBottom) * 0.30f
+        val eyeDx = w * 0.13f
+        val eyeR = w * 0.045f
+        listOf(w / 2f - eyeDx, w / 2f + eyeDx).forEach { ex ->
+            drawCircle(MizuColors.Ink, eyeR, Offset(ex, faceY))
+            drawCircle(Color.White, eyeR * 0.38f, Offset(ex + eyeR * 0.3f, faceY - eyeR * 0.3f))
+        }
+        drawArc(
+            MizuColors.Ink, startAngle = 20f, sweepAngle = 140f, useCenter = false,
+            topLeft = Offset(w / 2f - w * 0.09f, faceY - w * 0.02f), size = Size(w * 0.18f, w * 0.14f),
+            style = Stroke(1.6.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round),
+        )
+        drawCircle(Color(0xFFF4A6A6).copy(alpha = 0.8f), w * 0.045f, Offset(w / 2f - eyeDx * 1.55f, faceY + w * 0.07f))
+        drawCircle(Color(0xFFF4A6A6).copy(alpha = 0.8f), w * 0.045f, Offset(w / 2f + eyeDx * 1.55f, faceY + w * 0.07f))
     }
 }
 

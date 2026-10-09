@@ -63,7 +63,22 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mizu.BuildConfig
 import com.example.mizu.R
+import com.example.mizu.core.AppFont
 import com.example.mizu.core.AppLanguage
+import com.example.mizu.core.ReminderLevel
+import com.example.mizu.core.ReminderMode
+import com.example.mizu.reminder.NotificationHelper
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.compose.material.icons.rounded.Alarm
+import androidx.compose.material.icons.rounded.HourglassBottom
+import androidx.compose.material.icons.rounded.NotificationImportant
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.TextFields
+import androidx.compose.material.icons.rounded.TrendingDown
+import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.Warning
 import com.example.mizu.core.Bottle
 import com.example.mizu.core.GoalMode
 import com.example.mizu.core.MizuSettings
@@ -74,7 +89,10 @@ import java.time.format.DateTimeFormatter
 private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
 
 /** Which number is being edited in the shared number sheet. */
-private enum class NumberField { WEIGHT, GOAL, QUICK_1, QUICK_2, QUICK_3, SNOOZE, EMPTY_WEIGHT }
+private enum class NumberField {
+    WEIGHT, GOAL, QUICK_1, QUICK_2, QUICK_3, SNOOZE, EMPTY_WEIGHT,
+    BASE_INTERVAL, MIN_INTERVAL, ESCALATION, STRONG_DEFICIT, DRY_MINUTES, ALARM_DEFICIT,
+}
 
 private enum class TimeTarget { START, END }
 
@@ -97,6 +115,11 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
     var editingBottle by remember { mutableStateOf<Bottle?>(null) }
     var timeTarget by remember { mutableStateOf<TimeTarget?>(null) }
     var pickLanguage by remember { mutableStateOf(false) }
+    var pickFont by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var resumeTick by remember { mutableStateOf(0) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumeTick++ }
+    val fullScreenAllowed = remember(resumeTick) { NotificationHelper.canUseFullScreen(context) }
 
     Column(
         Modifier.verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = bottomPadding),
@@ -139,19 +162,6 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
             }
         }
 
-        // ---- quick add ----
-        SectionLabel(stringResource(R.string.quick_add_sizes))
-        SettingsGroup {
-            listOf(NumberField.QUICK_1, NumberField.QUICK_2, NumberField.QUICK_3).forEachIndexed { i, field ->
-                SettingsRow(
-                    Icons.Rounded.LocalDrink, stringResource(R.string.quick_button_n, i + 1),
-                    value = "${s.quickAddSizes.getOrElse(i) { 250 }.grouped()} $ml",
-                    onClick = { editing = field },
-                )
-                if (i < 2) RowDivider()
-            }
-        }
-
         // ---- reminders ----
         SectionLabel(stringResource(R.string.reminders))
         SettingsGroup {
@@ -164,12 +174,6 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
             SettingsRow(Icons.Rounded.WbTwilight, stringResource(R.string.reminder_start), value = s.reminderStart.format(HHMM), onClick = { timeTarget = TimeTarget.START })
             RowDivider()
             SettingsRow(Icons.Rounded.Schedule, stringResource(R.string.reminder_end), value = s.reminderEnd.format(HHMM), onClick = { timeTarget = TimeTarget.END })
-            RowDivider()
-            SettingsRow(
-                Icons.Rounded.Snooze, stringResource(R.string.snooze_minutes),
-                value = "${s.snoozeMinutes} ${stringResource(R.string.unit_min)}",
-                onClick = { editing = NumberField.SNOOZE },
-            )
             if (!s.reminderEnd.isAfter(s.reminderStart)) {
                 Text(
                     stringResource(R.string.window_invalid),
@@ -177,6 +181,99 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
+            }
+        }
+
+        SectionLabel(stringResource(R.string.reminder_rhythm))
+        SettingsGroup {
+            Box(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                PillSelector(
+                    options = listOf(
+                        ReminderMode.ADAPTIVE to stringResource(R.string.mode_adaptive),
+                        ReminderMode.FIXED to stringResource(R.string.mode_fixed),
+                    ),
+                    selected = s.reminderMode,
+                    onSelect = { mode -> vm.updateSettings { it.copy(reminderMode = mode) } },
+                )
+            }
+            Text(
+                stringResource(if (s.reminderMode == ReminderMode.ADAPTIVE) R.string.mode_adaptive_hint else R.string.mode_fixed_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MizuColors.InkSoft,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            SettingsRow(
+                Icons.Rounded.Schedule, stringResource(if (s.reminderMode == ReminderMode.ADAPTIVE) R.string.base_interval else R.string.fixed_interval),
+                value = "${s.baseIntervalMin} ${stringResource(R.string.unit_min)}",
+                onClick = { editing = NumberField.BASE_INTERVAL },
+            )
+            if (s.reminderMode == ReminderMode.ADAPTIVE) {
+                RowDivider()
+                SettingsRow(
+                    Icons.Rounded.Speed, stringResource(R.string.min_interval),
+                    value = "${s.minIntervalMin} ${stringResource(R.string.unit_min)}",
+                    onClick = { editing = NumberField.MIN_INTERVAL },
+                )
+                RowDivider()
+                SettingsRow(
+                    Icons.Rounded.TrendingDown, stringResource(R.string.escalation_at),
+                    value = "${s.escalationMl.grouped()} $ml",
+                    onClick = { editing = NumberField.ESCALATION },
+                )
+            }
+            RowDivider()
+            SettingsRow(
+                Icons.Rounded.Snooze, stringResource(R.string.snooze_minutes),
+                value = "${s.snoozeMinutes} ${stringResource(R.string.unit_min)}",
+                onClick = { editing = NumberField.SNOOZE },
+            )
+        }
+
+        SectionLabel(stringResource(R.string.reminder_strength))
+        SettingsGroup {
+            SettingsRow(
+                Icons.Rounded.Vibration, stringResource(R.string.strong_at),
+                subtitle = stringResource(R.string.strong_hint),
+                value = "${s.strongDeficitMl.grouped()} $ml",
+                onClick = { editing = NumberField.STRONG_DEFICIT },
+            )
+            RowDivider()
+            SettingsRow(
+                Icons.Rounded.HourglassBottom, stringResource(R.string.dry_after),
+                subtitle = stringResource(R.string.dry_hint),
+                value = "${s.dryMinutes} ${stringResource(R.string.unit_min)}",
+                onClick = { editing = NumberField.DRY_MINUTES },
+            )
+            RowDivider()
+            SettingsRow(
+                Icons.Rounded.Alarm, stringResource(R.string.alarm_mode),
+                subtitle = stringResource(R.string.alarm_mode_hint),
+                trailing = { MizuSwitch(s.alarmEnabled) { on -> vm.updateSettings { it.copy(alarmEnabled = on) } } },
+            )
+            if (s.alarmEnabled) {
+                RowDivider()
+                SettingsRow(
+                    Icons.Rounded.NotificationImportant, stringResource(R.string.alarm_at),
+                    value = "${s.alarmDeficitMl.grouped()} $ml",
+                    onClick = { editing = NumberField.ALARM_DEFICIT },
+                )
+                if (!fullScreenAllowed) {
+                    RowDivider()
+                    SettingsRow(
+                        Icons.Rounded.Warning, stringResource(R.string.alarm_permission),
+                        subtitle = stringResource(R.string.alarm_permission_hint),
+                        onClick = { openFullScreenSettings(context) },
+                    )
+                }
+            }
+            RowDivider()
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(R.string.test_reminder), style = MaterialTheme.typography.bodyLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SoftButton(stringResource(R.string.level_gentle), { vm.testReminder(ReminderLevel.GENTLE) }, Modifier.weight(1f), haptic = HapticKind.TICK)
+                    SoftButton(stringResource(R.string.level_strong), { vm.testReminder(ReminderLevel.STRONG) }, Modifier.weight(1f), haptic = HapticKind.CLICK)
+                    SoftButton(stringResource(R.string.level_alarm), { vm.testReminder(ReminderLevel.ALARM) }, Modifier.weight(1f), haptic = HapticKind.HEAVY)
+                }
             }
         }
 
@@ -211,6 +308,14 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
                 subtitle = stringResource(R.string.haptics_subtitle),
                 trailing = { MizuSwitch(s.hapticsEnabled) { on -> vm.updateSettings { it.copy(hapticsEnabled = on) } } },
             )
+            RowDivider()
+            SettingsRow(
+                Icons.Rounded.VolumeUp, stringResource(R.string.sounds),
+                subtitle = stringResource(R.string.sounds_subtitle),
+                trailing = { MizuSwitch(s.soundEnabled) { on -> vm.updateSettings { it.copy(soundEnabled = on) } } },
+            )
+            RowDivider()
+            SettingsRow(Icons.Rounded.TextFields, stringResource(R.string.font), value = fontLabel(s.font), onClick = { pickFont = true })
             RowDivider()
             SettingsRow(Icons.Rounded.FileDownload, stringResource(R.string.export_csv), onClick = onExport)
         }
@@ -250,6 +355,13 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
             onDismiss = { timeTarget = null },
         )
     }
+    if (pickFont) {
+        FontSheet(
+            current = s.font,
+            onPick = { f -> vm.updateSettings { it.copy(font = f) }; pickFont = false },
+            onDismiss = { pickFont = false },
+        )
+    }
     if (pickLanguage) {
         val haptics = LocalHaptics.current
         MizuSheet(onDismiss = { pickLanguage = false }) {
@@ -273,6 +385,52 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
                     Text(languageLabel(lang), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                     if (selected) Icon(Icons.Rounded.Check, null, tint = MizuColors.WaterDeep)
                 }
+            }
+        }
+    }
+}
+
+private fun fontLabel(f: AppFont) = when (f) {
+    AppFont.EDITORIAL -> "Editorial"
+    AppFont.PLEX -> "IBM Plex Sans Thai"
+    AppFont.PROMPT -> "Prompt"
+    AppFont.SARABUN -> "Sarabun"
+    AppFont.MALI -> "Mali"
+}
+
+private fun openFullScreenSettings(context: android.content.Context) {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        context.startActivity(
+            android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, android.net.Uri.parse("package:${context.packageName}"))
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
+}
+
+/** Font picker: each option previews itself in Thai and English. */
+@Composable
+private fun FontSheet(current: AppFont, onPick: (AppFont) -> Unit, onDismiss: () -> Unit) {
+    MizuSheet(onDismiss) {
+        Text(stringResource(R.string.font), style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        AppFont.entries.forEach { f ->
+            val selected = f == current
+            val (display, body) = f.families()
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(if (selected) MizuColors.Water else Color.White)
+                    .border(if (selected) 2.dp else 1.dp, MizuColors.Ink, RoundedCornerShape(18.dp))
+                    .bouncyClick(haptic = HapticKind.TICK) { onPick(f) }
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(fontLabel(f), style = MonoLabel, color = MizuColors.InkSoft)
+                    Text("ดื่มน้ำ 2,100 ml", style = MaterialTheme.typography.titleLarge.copy(fontFamily = display))
+                    Text("สดชื่นทั้งวัน · Stay hydrated", style = MaterialTheme.typography.bodyMedium.copy(fontFamily = body))
+                }
+                if (selected) Icon(Icons.Rounded.Check, null, tint = MizuColors.Ink)
             }
         }
     }
@@ -317,6 +475,12 @@ private fun SettingNumberSheet(field: NumberField, s: MizuSettings, ml: String, 
         NumberField.GOAL -> Quad(stringResource(R.string.daily_goal), s.dailyGoalMl, 200..10_000, ml)
         NumberField.SNOOZE -> Quad(stringResource(R.string.snooze_minutes), s.snoozeMinutes, 1..120, stringResource(R.string.unit_min))
         NumberField.EMPTY_WEIGHT -> Quad(stringResource(R.string.default_empty_weight), s.defaultEmptyWeightG, 0..5000, g)
+        NumberField.BASE_INTERVAL -> Quad(stringResource(R.string.base_interval), s.baseIntervalMin, 10..240, stringResource(R.string.unit_min))
+        NumberField.MIN_INTERVAL -> Quad(stringResource(R.string.min_interval), s.minIntervalMin, 5..120, stringResource(R.string.unit_min))
+        NumberField.ESCALATION -> Quad(stringResource(R.string.escalation_at), s.escalationMl, 100..3000, ml)
+        NumberField.STRONG_DEFICIT -> Quad(stringResource(R.string.strong_at), s.strongDeficitMl, 100..5000, ml)
+        NumberField.DRY_MINUTES -> Quad(stringResource(R.string.dry_after), s.dryMinutes, 30..480, stringResource(R.string.unit_min))
+        NumberField.ALARM_DEFICIT -> Quad(stringResource(R.string.alarm_at), s.alarmDeficitMl, 200..5000, ml)
         else -> Quad(stringResource(R.string.quick_button_n, quickIndex + 1), s.quickAddSizes.getOrElse(quickIndex) { 250 }, 10..2000, ml)
     }
     NumberSheet(
@@ -332,6 +496,12 @@ private fun SettingNumberSheet(field: NumberField, s: MizuSettings, ml: String, 
                     NumberField.GOAL -> cur.copy(dailyGoalMl = v, goalMode = GoalMode.MANUAL)
                     NumberField.SNOOZE -> cur.copy(snoozeMinutes = v)
                     NumberField.EMPTY_WEIGHT -> cur.copy(defaultEmptyWeightG = v)
+                    NumberField.BASE_INTERVAL -> cur.copy(baseIntervalMin = v, minIntervalMin = cur.minIntervalMin.coerceAtMost(v))
+                    NumberField.MIN_INTERVAL -> cur.copy(minIntervalMin = v.coerceAtMost(cur.baseIntervalMin))
+                    NumberField.ESCALATION -> cur.copy(escalationMl = v)
+                    NumberField.STRONG_DEFICIT -> cur.copy(strongDeficitMl = v)
+                    NumberField.DRY_MINUTES -> cur.copy(dryMinutes = v)
+                    NumberField.ALARM_DEFICIT -> cur.copy(alarmDeficitMl = v)
                     else -> {
                         val list = cur.quickAddSizes.toMutableList()
                         while (list.size < 3) list += 250

@@ -16,11 +16,17 @@ import com.example.mizu.core.AppLanguage
 import com.example.mizu.core.Feasibility
 import com.example.mizu.core.GoalCalculator
 import com.example.mizu.core.ReminderContent
+import com.example.mizu.core.ReminderLevel
 import com.example.mizu.util.localized
 import java.util.Locale
 
 object NotificationHelper {
     const val CHANNEL_ID = "reminders"
+    const val CHANNEL_STRONG = "reminders_strong"
+    const val CHANNEL_ALARM = "reminders_alarm"
+    const val EXTRA_REMAINING_ML = "remaining_ml"
+    const val EXTRA_DEFICIT_ML = "deficit_ml"
+    private val STRONG_VIBRATION = longArrayOf(0, 400, 200, 400, 200, 700)
     const val NOTIFICATION_ID = 1001
     const val ACTION_DRANK = "com.example.mizu.action.DRANK"
     const val ACTION_SNOOZE = "com.example.mizu.action.SNOOZE"
@@ -28,13 +34,29 @@ object NotificationHelper {
     const val EXTRA_AMOUNT_ML = "amount_ml"
     const val KEY_REPLY = "mizu_reply"
 
+    /** Three channels so each level can have its own importance, sound and vibration (users can tune them in system settings too). */
     fun createChannel(context: Context) {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            context.getString(R.string.channel_name),
-            NotificationManager.IMPORTANCE_DEFAULT,
+        val nm = context.getSystemService(NotificationManager::class.java)
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_ID, context.getString(R.string.channel_name), NotificationManager.IMPORTANCE_DEFAULT),
         )
-        context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_STRONG, context.getString(R.string.channel_strong), NotificationManager.IMPORTANCE_HIGH).apply {
+                enableVibration(true)
+                vibrationPattern = STRONG_VIBRATION
+            },
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_ALARM, context.getString(R.string.channel_alarm), NotificationManager.IMPORTANCE_HIGH).apply {
+                enableVibration(true)
+                vibrationPattern = STRONG_VIBRATION
+                setSound(
+                    android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM),
+                    android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).build(),
+                )
+                setBypassDnd(false)
+            },
+        )
     }
 
     private fun Int.grouped(): String = String.format(Locale.US, "%,d", this)
@@ -104,7 +126,12 @@ object NotificationHelper {
                 .build()
         }
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val channel = when (content.level) {
+            ReminderLevel.GENTLE -> CHANNEL_ID
+            ReminderLevel.STRONG -> CHANNEL_STRONG
+            ReminderLevel.ALARM -> CHANNEL_ALARM
+        }
+        val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_drop)
             .setColor(0xFF2479C7.toInt())
             .setContentTitle(title)
@@ -113,8 +140,8 @@ object NotificationHelper {
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setCustomContentView(views(R.layout.notif_progress_small, big = false))
             .setCustomBigContentView(views(R.layout.notif_progress_big, big = true))
-            .setPriority(if (content.urgent) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setPriority(if (content.level == ReminderLevel.GENTLE) NotificationCompat.PRIORITY_DEFAULT else NotificationCompat.PRIORITY_HIGH)
+            .setCategory(if (content.level == ReminderLevel.ALARM) NotificationCompat.CATEGORY_ALARM else NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(open)
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
@@ -122,13 +149,33 @@ object NotificationHelper {
             .addAction(snooze)
             .addAction(replyAction(withChoices = false))
             .extend(NotificationCompat.WearableExtender().addAction(drank).addAction(snooze).addAction(replyAction(withChoices = true)))
-            .build()
+        if (content.level == ReminderLevel.ALARM) {
+            // Alarm style: full screen over the lock screen (system shows a heads-up instead while the phone is in use).
+            val alarm = PendingIntent.getActivity(
+                context, 2, alarmIntent(context, content),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            builder.setFullScreenIntent(alarm, true).setOngoing(true)
+        }
+        val notification = builder.build()
         try {
             manager.notify(NOTIFICATION_ID, notification)
         } catch (_: SecurityException) {
             // POST_NOTIFICATIONS revoked between the check and the call.
         }
     }
+
+    fun alarmIntent(context: Context, content: ReminderContent): Intent =
+        Intent(context, AlarmActivity::class.java)
+            .putExtra(EXTRA_AMOUNT_ML, content.suggestedMl)
+            .putExtra(EXTRA_REMAINING_ML, content.remainingMl)
+            .putExtra(EXTRA_DEFICIT_ML, content.deficitMl)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+
+    /** Android 14+ lets users revoke full-screen alarms; true when this app may use them. */
+    fun canUseFullScreen(context: Context): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
+            context.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
 
     /** Words in a quick-response reply that mean "snooze" (any other reply logs the suggested amount). */
     fun isSnoozeReply(text: CharSequence?): Boolean {

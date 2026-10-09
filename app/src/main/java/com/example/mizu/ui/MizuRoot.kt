@@ -87,22 +87,27 @@ fun MizuRoot(
     val settings by vm.settings.collectAsStateWithLifecycle()
     val base = LocalContext.current
     val haptics = remember(base) { Haptics(base.applicationContext) }
+    val sounds = remember(base) { Sounds(base.applicationContext) }
 
     LaunchedEffect(demo) { if (demo) vm.seedDemo() }
 
-    MizuTheme {
+    MizuTheme(font = settings?.font ?: com.example.mizu.core.AppFont.EDITORIAL) {
         val s = settings
         if (s == null) {
             Box(Modifier.fillMaxSize().background(MizuColors.Paper))
             return@MizuTheme
         }
-        SideEffect { haptics.enabled = s.hapticsEnabled }
+        SideEffect {
+            haptics.enabled = s.hapticsEnabled
+            sounds.enabled = s.soundEnabled
+        }
         // Wrap (not replace) the Activity context so strings follow the in-app language with no restart.
         val localized = remember(s.language, base) { base.localizedWrapper(s.language) }
         CompositionLocalProvider(
             LocalContext provides localized,
             LocalConfiguration provides localized.resources.configuration,
             LocalHaptics provides haptics,
+            LocalSounds provides sounds,
         ) {
             MizuShell(vm, startScreen, quickRequest)
         }
@@ -126,6 +131,7 @@ private fun MizuShell(vm: MizuViewModel, startScreen: String?, quickRequest: Qui
     if (overlay != Overlay.NONE) shownOverlay = overlay
     val toast = remember { ToastState() }
     val haptics = LocalHaptics.current
+    val sounds = LocalSounds.current
 
     NotificationPermissionPrompt(vm)
 
@@ -138,6 +144,7 @@ private fun MizuShell(vm: MizuViewModel, startScreen: String?, quickRequest: Qui
             is QuickRequest.Fill -> vm.fillCurrentBottle { filled ->
                 if (filled != null) {
                     haptics.success()
+                    sounds.fill()
                     toast.show(String.format(filledText, (filled.capacityMl ?: 0).grouped()))
                 } else {
                     toast.show(needsWeighText)
