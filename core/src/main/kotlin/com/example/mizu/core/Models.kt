@@ -13,13 +13,18 @@ enum class AppLanguage(val tag: String) {
     JA("ja"),
 }
 
-/** [emptyWeightG] null = use [MizuSettings.defaultEmptyWeightG]. [currentWaterG] null = never weighed. */
+/**
+ * [emptyWeightG] null = use [MizuSettings.defaultEmptyWeightG]. [currentWaterG] null = never weighed.
+ * [capacityMl] null = unknown (learned from the fullest fill). [waterUpdatedAt] = when [currentWaterG] was last set.
+ */
 data class Bottle(
     val id: Long = 0,
     val name: String,
     val emptyWeightG: Int? = null,
     val currentWaterG: Int? = null,
     val isActive: Boolean = true,
+    val capacityMl: Int? = null,
+    val waterUpdatedAt: LocalDateTime? = null,
 )
 
 data class DrinkLog(

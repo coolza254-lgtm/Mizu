@@ -2,6 +2,7 @@ package com.example.mizu.data
 
 import androidx.room.withTransaction
 import com.example.mizu.core.Bottle
+import com.example.mizu.core.BottlePlanner
 import com.example.mizu.core.CsvExporter
 import com.example.mizu.core.DrinkLog
 import com.example.mizu.core.DrinkSource
@@ -70,21 +71,42 @@ class MizuRepository(
     /** Applies a confirmed weigh outcome. [WeighOutcome.AskRefill] here means "yes, it was refilled": new baseline, no log. */
     suspend fun saveWeigh(bottleId: Long, outcome: WeighOutcome, at: LocalDateTime = LocalDateTime.now()) {
         val bottle = dao.getBottle(bottleId) ?: return
+        val stamp = at.toEpochMs()
+        // A fill (first weigh or refill) also teaches the bottle its capacity: the fullest it has been.
+        fun filled(water: Int) = bottle.copy(
+            currentWaterG = water,
+            waterUpdatedAt = stamp,
+            capacityMl = BottlePlanner.learnCapacity(bottle.capacityMl, water),
+        )
         when (outcome) {
-            is WeighOutcome.SetBaseline -> dao.updateBottle(bottle.copy(currentWaterG = outcome.waterG))
-            is WeighOutcome.AskRefill -> dao.updateBottle(bottle.copy(currentWaterG = outcome.newWaterG))
+            is WeighOutcome.SetBaseline -> dao.updateBottle(filled(outcome.waterG))
+            is WeighOutcome.AskRefill -> dao.updateBottle(filled(outcome.newWaterG))
             is WeighOutcome.Drink -> db.withTransaction {
                 dao.insertLog(
                     DrinkLogEntity(
-                        timestamp = at.toEpochMs(), amountMl = outcome.amountMl, source = DrinkSource.WEIGH.name,
+                        timestamp = stamp, amountMl = outcome.amountMl, source = DrinkSource.WEIGH.name,
                         bottleId = bottleId, weightBeforeG = outcome.weightBeforeG, weightAfterG = outcome.weightAfterG,
                     ),
                 )
-                dao.updateBottle(bottle.copy(currentWaterG = outcome.newWaterG))
+                dao.updateBottle(bottle.copy(currentWaterG = outcome.newWaterG, waterUpdatedAt = stamp))
             }
             WeighOutcome.NoChange, WeighOutcome.Invalid -> return
         }
         onLogsChanged()
+    }
+
+    /** One-tap "filled to the top": water = known capacity, no weighing and no log. */
+    suspend fun fillBottle(bottleId: Long, at: LocalDateTime = LocalDateTime.now()) {
+        val bottle = dao.getBottle(bottleId) ?: return
+        val capacity = bottle.capacityMl ?: return
+        dao.updateBottle(bottle.copy(currentWaterG = capacity, waterUpdatedAt = at.toEpochMs()))
+    }
+
+    /** Debug demo only: give the first bottle a level and capacity. */
+    suspend fun seedDemoBottle(waterMl: Int, capacityMl: Int, at: LocalDateTime) {
+        val bottle = dao.allBottles().firstOrNull() ?: return
+        if (bottle.currentWaterG != null) return
+        dao.updateBottle(bottle.copy(currentWaterG = waterMl, capacityMl = capacityMl, waterUpdatedAt = at.toEpochMs()))
     }
 
     suspend fun saveBottle(bottle: Bottle) {

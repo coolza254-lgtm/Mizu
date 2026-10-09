@@ -19,7 +19,6 @@
     <string name="should_drink_more">Drink %1$d ml more to stay on track</string>
     <string name="goal_reached">Goal reached 🎉</string>
     <string name="manual_add">Custom</string>
-    <string name="weigh_button">Weigh bottle</string>
     <string name="today_log">Today\'s log</string>
     <string name="no_logs_today">Nothing logged yet today. Tap a button above to start.</string>
     <string name="no_logs_day">No entries on this day.</string>
@@ -142,9 +141,21 @@
     <string name="notif_action_reply">Reply</string>
     <string name="notif_reply_label">Reply \"Drank\" or \"Snooze\"</string>
     <string name="notif_amount">%1$s / %2$s ml</string>
+    <string name="bottle_card_label">In the bottle · %1$s</string>
+    <string name="bottle_status_not_weighed">Not weighed yet. Tap Weigh to start.</string>
+    <string name="bottle_status_empty">Empty, time to refill</string>
+    <string name="bottle_status_covers_goal">Enough to reach today\'s goal</string>
+    <string name="bottle_status_empty_at">Runs out around %1$s · refill before then</string>
+    <string name="bottle_status_lasts_today">Lasts the rest of the day</string>
+    <string name="bottle_refills_needed">%1$d more refill(s) today</string>
+    <string name="bottle_last_weighed">Updated %1$s</string>
+    <string name="weigh_short">Weigh</string>
+    <string name="fill_full">Filled up</string>
+    <string name="toast_filled">Filled to %1$s ml</string>
+    <string name="bottle_capacity_label">Capacity (blank = learn from fills)</string>
+    <string name="capacity_short">holds %1$s ml</string>
     <string name="undo">Undo</string>
     <string name="update_idle">Look for a newer version</string>
     <string name="value_range">Enter %1$s–%2$s %3$s</string>
-    <string name="weigh_subtitle">Before &amp; after</string>
     <string name="window_summary">Reminders %1$s–%2$s</string>
 </resources>

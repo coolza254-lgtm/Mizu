@@ -190,7 +190,8 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
                 RowDivider()
                 SettingsRow(
                     Icons.Rounded.WaterDrop, b.name,
-                    subtitle = stringResource(R.string.empty_weight_used, s.emptyWeightOf(b).grouped()),
+                    subtitle = stringResource(R.string.empty_weight_used, s.emptyWeightOf(b).grouped()) +
+                        (b.capacityMl?.let { " · " + stringResource(R.string.capacity_short, it.grouped()) } ?: ""),
                     onClick = { editingBottle = b },
                 )
             }
@@ -351,9 +352,12 @@ private fun BottleSheet(
 ) {
     var name by remember { mutableStateOf(bottle.name) }
     var emptyText by remember { mutableStateOf(bottle.emptyWeightG?.toString() ?: "") }
+    var capacityText by remember { mutableStateOf(bottle.capacityMl?.toString() ?: "") }
     val empty = emptyText.toIntOrNull()
     val emptyOk = emptyText.isEmpty() || (empty != null && empty in 0..5000)
-    val valid = name.isNotBlank() && emptyOk
+    val capacity = capacityText.toIntOrNull()
+    val capacityOk = capacityText.isEmpty() || (capacity != null && capacity in 50..5000)
+    val valid = name.isNotBlank() && emptyOk && capacityOk
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MizuColors.Water,
         unfocusedBorderColor = MizuColors.Line,
@@ -388,11 +392,23 @@ private fun BottleSheet(
             colors = fieldColors,
             modifier = Modifier.fillMaxWidth(),
         )
+        OutlinedTextField(
+            value = capacityText,
+            onValueChange = { raw -> capacityText = raw.filter(Char::isDigit).take(4) },
+            label = { Text(stringResource(R.string.bottle_capacity_label)) },
+            suffix = { Text(stringResource(R.string.unit_ml)) },
+            singleLine = true,
+            isError = !capacityOk,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            shape = RoundedCornerShape(20.dp),
+            colors = fieldColors,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (canArchive) SoftButton(stringResource(R.string.archive_bottle), onArchive, color = MizuColors.Danger, haptic = HapticKind.HEAVY)
             PrimaryButton(
                 stringResource(R.string.save),
-                onClick = { onSave(bottle.copy(name = name.trim(), emptyWeightG = empty)) },
+                onClick = { onSave(bottle.copy(name = name.trim(), emptyWeightG = empty, capacityMl = capacity)) },
                 enabled = valid,
                 modifier = Modifier.weight(1f),
                 haptic = HapticKind.SUCCESS,

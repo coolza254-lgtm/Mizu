@@ -102,6 +102,7 @@ class MizuViewModel(app: Application) : AndroidViewModel(app) {
             DrinkLog(timestamp = today.atTime(12, 30), amountMl = 150, source = DrinkSource.MANUAL),
         ).filter { !it.timestamp.isAfter(LocalDateTime.now()) || it.timestamp.toLocalDate() != today }
         c.repository.seedDemo(logs)
+        c.repository.seedDemoBottle(waterMl = 420, capacityMl = 750, at = LocalDateTime.now().minusMinutes(40))
     }
 
     fun editLog(id: Long, ml: Int) = viewModelScope.launch { c.repository.updateLogAmount(id, ml) }
@@ -124,6 +125,8 @@ class MizuViewModel(app: Application) : AndroidViewModel(app) {
         c.settings.update(transform)
         c.scheduler.reschedule()
     }
+
+    fun fillBottle(id: Long) = viewModelScope.launch { c.repository.fillBottle(id) }
 
     fun saveBottle(bottle: Bottle) = viewModelScope.launch { c.repository.saveBottle(bottle) }
 

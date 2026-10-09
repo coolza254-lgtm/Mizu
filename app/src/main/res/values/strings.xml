@@ -19,7 +19,6 @@
     <string name="should_drink_more">ควรดื่มเพิ่ม %1$d ml เพื่อให้ถึงเป้า</string>
     <string name="goal_reached">ถึงเป้าแล้ว 🎉</string>
     <string name="manual_add">ระบุเอง</string>
-    <string name="weigh_button">ชั่งกระบอก</string>
     <string name="today_log">บันทึกวันนี้</string>
     <string name="no_logs_today">ยังไม่มีบันทึกวันนี้ แตะปุ่มด้านบนเพื่อเริ่มดื่มน้ำ</string>
     <string name="no_logs_day">ไม่มีบันทึกในวันนี้</string>
@@ -142,9 +141,21 @@
     <string name="notif_action_reply">ตอบกลับ</string>
     <string name="notif_reply_label">ตอบ \"ดื่มแล้ว\" หรือ \"เลื่อน\"</string>
     <string name="notif_amount">%1$s / %2$s ml</string>
+    <string name="bottle_card_label">น้ำในกระบอก · %1$s</string>
+    <string name="bottle_status_not_weighed">ยังไม่ได้ชั่ง แตะ “ชั่ง” เพื่อเริ่ม</string>
+    <string name="bottle_status_empty">น้ำหมดแล้ว ถึงเวลาเติม</string>
+    <string name="bottle_status_covers_goal">น้ำในกระบอกพอถึงเป้าวันนี้แล้ว</string>
+    <string name="bottle_status_empty_at">จะหมดราว %1$s · ควรเติมก่อนเวลานั้น</string>
+    <string name="bottle_status_lasts_today">พอใช้ถึงสิ้นวัน</string>
+    <string name="bottle_refills_needed">ต้องเติมอีก %1$d ครั้งวันนี้</string>
+    <string name="bottle_last_weighed">อัปเดต %1$s</string>
+    <string name="weigh_short">ชั่ง</string>
+    <string name="fill_full">เติมเต็ม</string>
+    <string name="toast_filled">เติมเต็มแล้ว %1$s ml</string>
+    <string name="bottle_capacity_label">ความจุ (เว้นว่าง = จำจากการเติมเต็ม)</string>
+    <string name="capacity_short">จุ %1$s ml</string>
     <string name="undo">เลิกทำ</string>
     <string name="update_idle">แตะเพื่อตรวจหาเวอร์ชันใหม่</string>
     <string name="value_range">ใส่ค่า %1$s–%2$s %3$s</string>
-    <string name="weigh_subtitle">ก่อน-หลังดื่ม</string>
     <string name="window_summary">เตือน %1$s–%2$s</string>
 </resources>

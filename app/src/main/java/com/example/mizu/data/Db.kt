@@ -11,6 +11,8 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Update
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.mizu.core.Bottle
 import com.example.mizu.core.DrinkLog
 import com.example.mizu.core.DrinkSource
@@ -25,6 +27,8 @@ data class BottleEntity(
     val emptyWeightG: Int?,
     val currentWaterG: Int?,
     val isActive: Boolean,
+    val capacityMl: Int? = null,
+    val waterUpdatedAt: Long? = null,
 )
 
 @Entity(tableName = "drink_logs", indices = [Index("timestamp")])
@@ -38,9 +42,9 @@ data class DrinkLogEntity(
     val weightAfterG: Int?,
 )
 
-fun BottleEntity.toModel() = Bottle(id, name, emptyWeightG, currentWaterG, isActive)
+fun BottleEntity.toModel() = Bottle(id, name, emptyWeightG, currentWaterG, isActive, capacityMl, waterUpdatedAt?.toLocalDateTime())
 
-fun Bottle.toEntity() = BottleEntity(id, name, emptyWeightG, currentWaterG, isActive)
+fun Bottle.toEntity() = BottleEntity(id, name, emptyWeightG, currentWaterG, isActive, capacityMl, waterUpdatedAt?.toEpochMs())
 
 fun DrinkLogEntity.toModel() = DrinkLog(
     id = id,
@@ -104,12 +108,22 @@ interface MizuDao {
     suspend fun updateBottle(bottle: BottleEntity)
 }
 
-@Database(entities = [BottleEntity::class, DrinkLogEntity::class], version = 1, exportSchema = false)
+@Database(entities = [BottleEntity::class, DrinkLogEntity::class], version = 2, exportSchema = false)
 abstract class MizuDatabase : RoomDatabase() {
     abstract fun dao(): MizuDao
 
     companion object {
+        /** v2: bottle capacity and when its water level was last set. */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE bottles ADD COLUMN capacityMl INTEGER")
+                db.execSQL("ALTER TABLE bottles ADD COLUMN waterUpdatedAt INTEGER")
+            }
+        }
+
         fun create(context: Context): MizuDatabase =
-            Room.databaseBuilder(context, MizuDatabase::class.java, "mizu.db").build()
+            Room.databaseBuilder(context, MizuDatabase::class.java, "mizu.db")
+                .addMigrations(MIGRATION_1_2)
+                .build()
     }
 }

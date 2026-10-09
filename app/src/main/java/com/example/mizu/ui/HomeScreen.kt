@@ -66,6 +66,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mizu.R
+import com.example.mizu.core.Bottle
+import com.example.mizu.core.BottleForecast
+import com.example.mizu.core.BottlePlanner
 import com.example.mizu.core.DrinkLog
 import com.example.mizu.core.DrinkSource
 import com.example.mizu.core.GoalCalculator
@@ -81,6 +84,7 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
     val logs by vm.logs.collectAsStateWithLifecycle()
     val now by vm.now.collectAsStateWithLifecycle()
     val nextReminder by vm.nextReminderAt.collectAsStateWithLifecycle()
+    val bottles by vm.bottles.collectAsStateWithLifecycle()
     val s = settings ?: return
     val locale = s.language.toLocale()
     val unit = stringResource(R.string.unit_ml)
@@ -98,6 +102,7 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
     val addedText = stringResource(R.string.toast_added)
     val deletedText = stringResource(R.string.toast_deleted)
     val undoText = stringResource(R.string.undo)
+    val filledText = stringResource(R.string.toast_filled)
 
     fun add(ml: Int, source: DrinkSource) {
         vm.addDrink(ml, source) { id ->
@@ -123,6 +128,19 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
         }
         item { StatusLine(reached, suggestion, unit) }
         item {
+            val bottle = bottles.filter { it.isActive }.maxByOrNull { it.waterUpdatedAt ?: LocalDateTime.MIN }
+            BottleCard(
+                bottle = bottle,
+                forecast = bottle?.let { BottlePlanner.forecast(it, now, s, logs) },
+                unit = unit,
+                onWeigh = onWeigh,
+                onFill = { b ->
+                    vm.fillBottle(b.id)
+                    toast.show(String.format(filledText, (b.capacityMl ?: 0).grouped()))
+                },
+            )
+        }
+        item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 StatTile(Icons.Rounded.Opacity, remaining.grouped(), stringResource(R.string.stat_remaining, unit), Modifier.weight(1f))
                 StatTile(Icons.Rounded.LocalDrink, todayLogs.size.toString(), stringResource(R.string.stat_drinks), Modifier.weight(1f))
@@ -146,27 +164,22 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
             }
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ActionCard(
-                    icon = Icons.Rounded.Scale,
-                    title = stringResource(R.string.weigh_button),
-                    subtitle = stringResource(R.string.weigh_subtitle),
-                    modifier = Modifier.weight(1f),
-                    onClick = onWeigh,
-                )
-                val reminderText = when {
-                    nextReminder == null -> stringResource(R.string.reminder_off)
-                    nextReminder!!.toLocalDate() == today -> nextReminder!!.format(TIME_FORMAT)
-                    else -> stringResource(R.string.tomorrow_at, nextReminder!!.format(TIME_FORMAT))
+            val reminderText = when {
+                nextReminder == null -> stringResource(R.string.reminder_off)
+                nextReminder!!.toLocalDate() == today -> nextReminder!!.format(TIME_FORMAT)
+                else -> stringResource(R.string.tomorrow_at, nextReminder!!.format(TIME_FORMAT))
+            }
+            GlassCard(padding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBadge(if (nextReminder == null) Icons.Rounded.NotificationsOff else Icons.Rounded.NotificationsActive, size = 40.dp)
+                    Text(
+                        stringResource(R.string.next_reminder),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MizuColors.InkSoft,
+                        modifier = Modifier.weight(1f).padding(horizontal = 14.dp),
+                    )
+                    Text(reminderText, style = MaterialTheme.typography.titleLarge, color = MizuColors.Ink)
                 }
-                ActionCard(
-                    icon = if (nextReminder == null) Icons.Rounded.NotificationsOff else Icons.Rounded.NotificationsActive,
-                    title = stringResource(R.string.next_reminder),
-                    subtitle = reminderText,
-                    modifier = Modifier.weight(1f),
-                    emphasizeSubtitle = nextReminder != null,
-                    onClick = null,
-                )
             }
         }
         item {
@@ -335,6 +348,71 @@ private fun ActionCard(
                 style = if (emphasizeSubtitle) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
                 color = MizuColors.Ink,
                 maxLines = 1,
+            )
+        }
+    }
+}
+
+/** Water left in the bottle, when it will run dry at the pace the goal needs, and quick weigh / fill. */
+@Composable
+private fun BottleCard(bottle: Bottle?, forecast: BottleForecast?, unit: String, onWeigh: () -> Unit, onFill: (Bottle) -> Unit) {
+    GlassCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BottleGauge(
+                previousWater = bottle?.currentWaterG,
+                newWater = null,
+                capacityMl = bottle?.capacityMl,
+                modifier = Modifier.size(width = 56.dp, height = 92.dp),
+            )
+            Column(Modifier.weight(1f).padding(start = 18.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    stringResource(R.string.bottle_card_label, bottle?.name ?: "—"),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MizuColors.InkSoft,
+                    maxLines = 1,
+                )
+                if (forecast == null) {
+                    Text(stringResource(R.string.bottle_status_not_weighed), style = MaterialTheme.typography.bodyLarge, color = MizuColors.Ink)
+                } else {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(forecast.waterMl.grouped(), style = MaterialTheme.typography.headlineSmall, color = MizuColors.Ink)
+                        Text(
+                            " " + (bottle?.capacityMl?.let { "/ ${it.grouped()} " } ?: "") + unit,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MizuColors.InkSoft,
+                            modifier = Modifier.padding(bottom = 3.dp),
+                        )
+                    }
+                    val status = when {
+                        forecast.waterMl <= 0 -> stringResource(R.string.bottle_status_empty)
+                        forecast.coversGoal -> stringResource(R.string.bottle_status_covers_goal)
+                        forecast.emptyAt != null -> stringResource(R.string.bottle_status_empty_at, forecast.emptyAt!!.format(TIME_FORMAT))
+                        else -> stringResource(R.string.bottle_status_lasts_today)
+                    }
+                    Text(
+                        status,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (forecast.waterMl <= 0) MizuColors.Danger else MizuColors.WaterDeep,
+                    )
+                    val extra = buildList {
+                        if (forecast.refillsNeeded > 0) add(stringResource(R.string.bottle_refills_needed, forecast.refillsNeeded))
+                        bottle?.waterUpdatedAt?.let { add(stringResource(R.string.bottle_last_weighed, it.format(TIME_FORMAT))) }
+                    }
+                    if (extra.isNotEmpty()) {
+                        Text(extra.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = MizuColors.InkFaint)
+                    }
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SoftButton(stringResource(R.string.weigh_short), onWeigh, Modifier.weight(1f), icon = Icons.Rounded.Scale)
+            PrimaryButton(
+                stringResource(R.string.fill_full),
+                onClick = { if (bottle != null) onFill(bottle) },
+                modifier = Modifier.weight(1f),
+                enabled = bottle?.capacityMl != null,
+                icon = Icons.Rounded.WaterDrop,
+                haptic = HapticKind.SUCCESS,
             )
         }
     }

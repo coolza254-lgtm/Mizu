@@ -19,7 +19,6 @@
     <string name="should_drink_more">目標達成のため、あと %1$d ml 飲みましょう</string>
     <string name="goal_reached">目標達成 🎉</string>
     <string name="manual_add">入力</string>
-    <string name="weigh_button">ボトルを量る</string>
     <string name="today_log">今日の記録</string>
     <string name="no_logs_today">今日はまだ記録がありません。上のボタンで記録しましょう。</string>
     <string name="no_logs_day">この日の記録はありません。</string>
@@ -142,9 +141,21 @@
     <string name="notif_action_reply">返信</string>
     <string name="notif_reply_label">「飲んだ」か「スヌーズ」で返信</string>
     <string name="notif_amount">%1$s / %2$s ml</string>
+    <string name="bottle_card_label">ボトルの水 · %1$s</string>
+    <string name="bottle_status_not_weighed">未計量です。「量る」から始めましょう</string>
+    <string name="bottle_status_empty">空です。補充しましょう</string>
+    <string name="bottle_status_covers_goal">今日の目標まで足ります</string>
+    <string name="bottle_status_empty_at">%1$s ごろ空に · それまでに補充</string>
+    <string name="bottle_status_lasts_today">今日いっぱい足ります</string>
+    <string name="bottle_refills_needed">今日あと %1$d 回補充</string>
+    <string name="bottle_last_weighed">更新 %1$s</string>
+    <string name="weigh_short">量る</string>
+    <string name="fill_full">満タン</string>
+    <string name="toast_filled">%1$s ml に補充しました</string>
+    <string name="bottle_capacity_label">容量（空欄＝補充から学習）</string>
+    <string name="capacity_short">容量 %1$s ml</string>
     <string name="undo">元に戻す</string>
     <string name="update_idle">新しいバージョンを確認</string>
     <string name="value_range">%1$s〜%2$s %3$s で入力</string>
-    <string name="weigh_subtitle">飲む前と後</string>
     <string name="window_summary">通知 %1$s〜%2$s</string>
 </resources>

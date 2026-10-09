@@ -69,7 +69,8 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
     var weightText by rememberSaveable { mutableStateOf("") }
     var askRefill by remember { mutableStateOf<WeighOutcome.AskRefill?>(null) }
 
-    val bottle = bottles.firstOrNull { it.id == selectedId } ?: bottles.firstOrNull()
+    val bottle = bottles.firstOrNull { it.id == selectedId }
+        ?: bottles.maxByOrNull { it.waterUpdatedAt ?: java.time.LocalDateTime.MIN }
     val weight = weightText.toIntOrNull()
     val validWeight = WeighCalculator.isValidWeight(weight)
     val empty = bottle?.let { s.emptyWeightOf(it) }
@@ -150,6 +151,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
                     previousWater = bottle.currentWaterG,
                     newWater = newWater,
                     modifier = Modifier.size(width = 70.dp, height = 116.dp),
+                    capacityMl = bottle.capacityMl?.let { maxOf(it, newWater ?: 0) },
                 )
             }
 
@@ -216,17 +218,19 @@ private fun BottleChip(bottle: Bottle, selected: Boolean, ml: String, onClick: (
     ) {
         Text(bottle.name, style = MaterialTheme.typography.titleMedium, maxLines = 1)
         Text(
-            bottle.currentWaterG?.let { "≈ ${it.grouped()} $ml" } ?: stringResource(R.string.not_weighed),
+            bottle.currentWaterG?.let { w ->
+                "≈ ${w.grouped()}" + (bottle.capacityMl?.let { " / ${it.grouped()}" } ?: "") + " $ml"
+            } ?: stringResource(R.string.not_weighed),
             style = MaterialTheme.typography.bodyMedium,
             color = MizuColors.InkSoft,
         )
     }
 }
 
-/** A little bottle that fills to the new water level (or the last known one). */
+/** A little bottle that fills to the new water level (or the last known one), scaled to [capacityMl] when known. */
 @Composable
-private fun BottleGauge(previousWater: Int?, newWater: Int?, modifier: Modifier = Modifier) {
-    val capacity = maxOf(previousWater ?: 0, newWater ?: 0, 1000).toFloat()
+fun BottleGauge(previousWater: Int?, newWater: Int?, modifier: Modifier = Modifier, capacityMl: Int? = null) {
+    val capacity = (capacityMl?.takeIf { it > 0 } ?: maxOf(previousWater ?: 0, newWater ?: 0, 1000)).toFloat()
     val target = ((newWater ?: previousWater ?: 0) / capacity).coerceIn(0f, 1f)
     val level by animateFloatAsState(target, tween(600, easing = FastOutSlowInEasing), label = "bottle")
     val prevMark = previousWater?.let { (it / capacity).coerceIn(0f, 1f) }
