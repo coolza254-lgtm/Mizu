@@ -161,7 +161,7 @@
     <string name="channel_strong">เตือนแรง (ขาดน้ำมาก)</string>
     <string name="channel_alarm">เตือนแบบปลุก</string>
     <string name="alarm_title">ดื่มน้ำด่วน! 💧</string>
-    <string name="alarm_behind">ตามเป้าอยู่ %1$s ml · เหลืออีก %2$s ml วันนี้</string>
+    <string name="alarm_behind">ช้ากว่าเป้า %1$s ml · วันนี้เหลืออีก %2$s ml</string>
     <string name="alarm_drank">ดื่มแล้ว %1$s ml</string>
     <string name="alarm_dismiss">ปิด</string>
     <string name="reminder_rhythm">จังหวะการเตือน</string>

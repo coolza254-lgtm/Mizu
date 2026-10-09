@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -152,13 +153,14 @@ private fun AlarmScreen(
 ) {
     val ml = stringResource(R.string.unit_ml)
     Column(
-        Modifier.fillMaxSize().dotGrid().statusBarsPadding().navigationBarsPadding().padding(24.dp),
+        Modifier.fillMaxSize().dotGrid().statusBarsPadding().navigationBarsPadding()
+            .verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
     ) {
         MonoKicker("mizu / alarm")
         Text(stringResource(R.string.alarm_title), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
-        BottleGauge(previousWater = 0, newWater = 0, capacityMl = 1000, modifier = Modifier.size(width = 90.dp, height = 186.dp))
+        BottleGauge(previousWater = 0, newWater = 0, capacityMl = 1000, modifier = Modifier.size(width = 74.dp, height = 152.dp))
         Text(
             stringResource(R.string.alarm_behind, deficitMl.coerceAtLeast(0).grouped(), remainingMl.grouped()),
             style = MaterialTheme.typography.bodyLarge,
