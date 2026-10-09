@@ -405,13 +405,12 @@ private fun BottleCard(bottle: Bottle?, forecast: BottleForecast?, unit: String,
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SoftButton(stringResource(R.string.weigh_short), onWeigh, Modifier.weight(1f), icon = Icons.Rounded.Scale)
+            SoftButton(stringResource(R.string.weigh_short), onWeigh, Modifier.weight(1f))
             PrimaryButton(
                 stringResource(R.string.fill_full),
                 onClick = { if (bottle != null) onFill(bottle) },
                 modifier = Modifier.weight(1f),
                 enabled = bottle?.capacityMl != null,
-                icon = Icons.Rounded.WaterDrop,
                 haptic = HapticKind.SUCCESS,
             )
         }

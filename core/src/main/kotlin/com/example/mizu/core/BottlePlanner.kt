@@ -47,10 +47,13 @@ object BottlePlanner {
         val consumed = GoalCalculator.consumedOn(now.toLocalDate(), logs)
         val remainingGoal = GoalCalculator.remainingMl(consumed, settings.goalMl)
         val rate = rateMlPerHour(now, settings, logs)
+        val start = now.toLocalDate().atTime(settings.reminderStart)
         val end = now.toLocalDate().atTime(settings.reminderEnd)
+        // No drinking is planned before the window opens, so the countdown starts at the window start.
+        val from = if (now.isBefore(start)) start else now
 
         val emptyAt = if (rate > 0 && water > 0) {
-            now.plusMinutes((water / rate * 60).toLong()).takeIf { it.isBefore(end) }
+            from.plusMinutes((water / rate * 60).toLong()).takeIf { it.isBefore(end) }
         } else if (water <= 0) {
             now
         } else {

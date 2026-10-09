@@ -57,6 +57,13 @@ class BottlePlannerTest {
     }
 
     @Test
+    fun beforeTheWindowTheCountdownStartsAtWindowStart() {
+        // 03:54, nothing drunk: pace = 2000 ml over 08:00-22:00 = ~142.9 ml/h; 420 ml lasts ~2.94 h from 08:00
+        val f = assertNotNull(BottlePlanner.forecast(Bottle(name = "b", currentWaterG = 420), day.atTime(3, 54), settings, emptyList()))
+        assertEquals(day.atTime(10, 56), f.emptyAt)
+    }
+
+    @Test
     fun neverWeighedHasNoForecast() {
         assertNull(BottlePlanner.forecast(Bottle(name = "b"), day.atTime(12, 0), settings, emptyList()))
     }
