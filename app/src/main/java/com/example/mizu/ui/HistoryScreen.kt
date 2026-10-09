@@ -104,8 +104,9 @@ fun HistoryScreen(vm: MizuViewModel, bottomPadding: Dp) {
     ) {
         item {
             Column {
-                Text(stringResource(R.string.history_kicker), style = MaterialTheme.typography.labelMedium, color = MizuColors.InkSoft)
+                MonoKicker("mizu / history")
                 Text(stringResource(R.string.tab_history), style = MaterialTheme.typography.headlineMedium)
+                Text(stringResource(R.string.history_kicker), style = MaterialTheme.typography.bodyMedium, color = MizuColors.InkSoft)
             }
         }
         item {
@@ -250,30 +251,30 @@ private fun BarChart(days: List<DaySummary>, goal: Int, weekLabels: Boolean, loc
             days.forEachIndexed { i, d ->
                 val h = (size.height * (d.totalMl / max) * grow.value).coerceAtLeast(if (d.totalMl > 0) 4.dp.toPx() else 0f)
                 val left = i * slot + (slot - barWidth) / 2f
-                // empty track
-                drawRoundRect(
-                    color = MizuColors.Mist,
-                    topLeft = Offset(left, 0f),
-                    size = Size(barWidth, size.height),
-                    cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f),
-                )
                 if (h > 0f) {
                     val reached = GoalCalculator.isGoalReached(d.totalMl, goal)
+                    val alpha = if (selected == -1 || selected == i) 1f else 0.35f
+                    val corner = CornerRadius(barWidth / 2.5f, barWidth / 2.5f)
                     drawRoundRect(
-                        brush = Brush.verticalGradient(
-                            if (reached) listOf(MizuColors.Water, MizuColors.WaterDeep) else listOf(MizuColors.Aqua, MizuColors.Water),
-                            startY = size.height - h,
-                            endY = size.height,
-                        ),
+                        color = if (reached) MizuColors.Water else MizuColors.Aqua,
                         topLeft = Offset(left, size.height - h),
                         size = Size(barWidth, h),
-                        cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f),
-                        alpha = if (selected == -1 || selected == i) 1f else 0.4f,
+                        cornerRadius = corner,
+                        alpha = alpha,
+                    )
+                    drawRoundRect(
+                        color = MizuColors.Ink,
+                        topLeft = Offset(left, size.height - h),
+                        size = Size(barWidth, h),
+                        cornerRadius = corner,
+                        alpha = alpha,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(1.2.dp.toPx()),
                     )
                 }
             }
+            drawLine(MizuColors.Ink, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 2.dp.toPx())
             drawLine(
-                color = MizuColors.WaterDeep.copy(alpha = 0.5f),
+                color = MizuColors.WaterDeep,
                 start = Offset(0f, goalY),
                 end = Offset(size.width, goalY),
                 strokeWidth = 1.5.dp.toPx(),

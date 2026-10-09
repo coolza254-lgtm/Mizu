@@ -82,7 +82,7 @@ fun MizuRoot(vm: MizuViewModel = viewModel(), startScreen: String? = null, demo:
     MizuTheme {
         val s = settings
         if (s == null) {
-            Box(Modifier.fillMaxSize().background(Color.White))
+            Box(Modifier.fillMaxSize().background(MizuColors.Paper))
             return@MizuTheme
         }
         SideEffect { haptics.enabled = s.hapticsEnabled }
@@ -120,7 +120,7 @@ private fun MizuShell(vm: MizuViewModel, startScreen: String?) {
     BackHandler(enabled = overlay != Overlay.NONE) { overlay = Overlay.NONE }
     BackHandler(enabled = overlay == Overlay.NONE && tab != Tab.HOME) { tab = Tab.HOME }
 
-    Box(Modifier.fillMaxSize().background(MizuColors.BackdropGradient)) {
+    Box(Modifier.fillMaxSize().dotGrid()) {
         AnimatedContent(
             targetState = tab,
             transitionSpec = {
@@ -152,7 +152,7 @@ private fun MizuShell(vm: MizuViewModel, startScreen: String?) {
             enter = slideInVertically(tween(340)) { it / 6 } + fadeIn(tween(260)),
             exit = slideOutVertically(tween(260)) { it / 6 } + fadeOut(tween(200)),
         ) {
-            Box(Modifier.fillMaxSize().background(Color.White).statusBarsPadding()) {
+            Box(Modifier.fillMaxSize().dotGrid().statusBarsPadding()) {
                 when (shownOverlay) {
                     Overlay.WEIGH -> WeighScreen(vm, toast, onBack = { overlay = Overlay.NONE })
                     Overlay.EXPORT -> ExportScreen(vm, toast, onBack = { overlay = Overlay.NONE })
@@ -172,10 +172,9 @@ private fun MizuShell(vm: MizuViewModel, startScreen: String?) {
 private fun FloatingNav(tab: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier
-            .shadow(24.dp, CircleShape, ambientColor = MizuColors.Water.copy(alpha = 0.2f), spotColor = MizuColors.WaterDeep.copy(alpha = 0.3f))
             .clip(CircleShape)
             .background(Color.White)
-            .border(1.dp, MizuColors.Line, CircleShape)
+            .border(2.dp, MizuColors.Ink, CircleShape)
             .padding(6.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -192,13 +191,14 @@ private fun NavItem(icon: ImageVector, label: String, selected: Boolean, onClick
         Modifier
             .heightIn(min = 52.dp)
             .clip(CircleShape)
-            .background(if (selected) MizuColors.Foam else Color.Transparent)
+            .background(if (selected) MizuColors.Water else Color.Transparent)
+            .border(if (selected) 1.dp else 0.dp, if (selected) MizuColors.Ink else Color.Transparent, CircleShape)
             .bouncyClick(haptic = HapticKind.NONE, pressedScale = 0.9f, onClick = onClick)
             .animateContentSize(tween(240))
             .padding(horizontal = if (selected) 20.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = label, tint = if (selected) MizuColors.WaterDeep else MizuColors.InkFaint, modifier = Modifier.size(24.dp))
+        Icon(icon, contentDescription = label, tint = if (selected) MizuColors.Ink else MizuColors.InkSoft, modifier = Modifier.size(24.dp))
         AnimatedVisibility(visible = selected, enter = fadeIn() + scaleIn(initialScale = 0.8f), exit = fadeOut()) {
             Text(label, style = MaterialTheme.typography.labelLarge, color = MizuColors.Ink, modifier = Modifier.padding(start = 8.dp))
         }

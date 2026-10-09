@@ -4,6 +4,7 @@ package com.example.mizu.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -102,8 +103,9 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column {
-            Text(stringResource(R.string.settings_kicker), style = MaterialTheme.typography.labelMedium, color = MizuColors.InkSoft)
+            MonoKicker("mizu / settings")
             Text(stringResource(R.string.tab_settings), style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.settings_kicker), style = MaterialTheme.typography.bodyMedium, color = MizuColors.InkSoft)
         }
 
         ProfileCard(s)
@@ -258,7 +260,8 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp))
-                        .background(if (selected) MizuColors.Foam else MizuColors.Mist)
+                        .background(if (selected) MizuColors.Water else Color.White)
+                        .border(if (selected) 2.dp else 1.dp, MizuColors.Ink, RoundedCornerShape(20.dp))
                         .bouncyClick(haptic = HapticKind.TICK) {
                             vm.updateSettings { it.copy(language = lang) }
                             haptics.success()
@@ -279,7 +282,10 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
 private fun ProfileCard(s: MizuSettings) {
     GlassCard(background = Color.White) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(64.dp).clip(CircleShape).background(MizuColors.Foam), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier.size(64.dp).clip(CircleShape).background(MizuColors.Foam).border(InkStroke, MizuColors.Ink, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
                 Image(painterResource(R.drawable.mizu_mascot), contentDescription = null, modifier = Modifier.size(54.dp))
             }
             Column(Modifier.weight(1f).padding(start = 16.dp)) {
@@ -359,10 +365,10 @@ private fun BottleSheet(
     val capacityOk = capacityText.isEmpty() || (capacity != null && capacity in 50..5000)
     val valid = name.isNotBlank() && emptyOk && capacityOk
     val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = MizuColors.Water,
-        unfocusedBorderColor = MizuColors.Line,
-        focusedContainerColor = MizuColors.Mist,
-        unfocusedContainerColor = MizuColors.Mist,
+        focusedBorderColor = MizuColors.Ink,
+        unfocusedBorderColor = MizuColors.Ink,
+        focusedContainerColor = Color.White,
+        unfocusedContainerColor = Color.White,
     )
     MizuSheet(onDismiss) {
         Text(

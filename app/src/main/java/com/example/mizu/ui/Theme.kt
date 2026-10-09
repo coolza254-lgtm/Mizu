@@ -14,24 +14,33 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Mizu palette: white space, soft water blues, deep ink for text. */
+/**
+ * Mizu palette, editorial style: warm paper, near-black ink outlines, flat pastel water blues.
+ * (Names are kept from the first theme so every screen picks up the new look.)
+ */
 object MizuColors {
-    val Water = Color(0xFF5BB8F0)
-    val WaterDeep = Color(0xFF2479C7)
-    val Aqua = Color(0xFF9BDBFA)
-    val Ink = Color(0xFF0A2A5E)
-    val InkSoft = Color(0xFF5A6F8F)
-    val InkFaint = Color(0xFF9AAAC0)
-    val Mist = Color(0xFFF4F9FD)
-    val Foam = Color(0xFFE6F4FD)
-    val Line = Color(0xFFE3EEF7)
-    val Danger = Color(0xFFD64545)
+    val Paper = Color(0xFFF5F4EF)
+    val Dot = Color(0xFFD6D3CA)
+    val Water = Color(0xFF8CC4EA)
+    val WaterDeep = Color(0xFF2F6FA8)
+    val Aqua = Color(0xFFBFDDF3)
+    val Highlight = Color(0xFFBFDDF3)
+    val Ink = Color(0xFF1C2430)
+    val InkSoft = Color(0xFF5B6472)
+    val InkFaint = Color(0xFF9AA0A8)
+    val Mist = Color(0xFFFFFFFF)
+    val Foam = Color(0xFFDCEBF7)
+    val Line = Color(0xFFD8D5CD)
+    val Danger = Color(0xFFC2504A)
     val White = Color.White
 
-    val ButtonGradient = Brush.horizontalGradient(listOf(Color(0xFF4AAEEB), WaterDeep))
-    val WaterGradient = Brush.verticalGradient(listOf(Aqua, Water, WaterDeep))
-    val BackdropGradient = Brush.verticalGradient(listOf(Foam, Color.White), endY = 1400f)
+    val ButtonGradient = Brush.linearGradient(listOf(Water, Water))
+    val WaterGradient = Brush.verticalGradient(listOf(Aqua, Water))
+    val BackdropGradient = Brush.verticalGradient(listOf(Paper, Paper))
 }
+
+/** Outline weight used on every card, button and chart. */
+val InkStroke = 1.5.dp
 
 private val Scheme = lightColorScheme(
     primary = MizuColors.Water,
@@ -42,7 +51,7 @@ private val Scheme = lightColorScheme(
     onSecondary = Color.White,
     secondaryContainer = MizuColors.Foam,
     onSecondaryContainer = MizuColors.Ink,
-    background = Color.White,
+    background = MizuColors.Paper,
     onBackground = MizuColors.Ink,
     surface = Color.White,
     onSurface = MizuColors.Ink,
@@ -63,16 +72,21 @@ private val Shape = Shapes(
     extraLarge = RoundedCornerShape(40.dp),
 )
 
-// System sans-serif on Android is the Noto family (Noto Sans, Noto Sans Thai, Noto Sans CJK JP).
+// System fonts are the Noto family. Display text is serif (Noto Serif; Thai/Japanese fall back to the
+// matching Noto face), body text sans, and small meta labels monospace, like an editorial layout.
 private val Sans = FontFamily.SansSerif
+private val Serif = FontFamily.Serif
 private const val TABULAR = "tnum"
 
+/** Small monospace meta label ("mizu / today"). */
+val MonoLabel = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.2.sp)
+
 private val Type = Typography(
-    displayLarge = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Light, fontSize = 58.sp, lineHeight = 64.sp, letterSpacing = (-1.5).sp, fontFeatureSettings = TABULAR),
-    displayMedium = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Light, fontSize = 44.sp, lineHeight = 52.sp, letterSpacing = (-1).sp, fontFeatureSettings = TABULAR),
-    headlineMedium = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontSize = 28.sp, lineHeight = 36.sp, letterSpacing = (-0.4).sp),
-    headlineSmall = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 32.sp, fontFeatureSettings = TABULAR),
-    titleLarge = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 28.sp, fontFeatureSettings = TABULAR),
+    displayLarge = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Normal, fontSize = 56.sp, lineHeight = 62.sp, letterSpacing = (-1).sp, fontFeatureSettings = TABULAR),
+    displayMedium = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Normal, fontSize = 42.sp, lineHeight = 50.sp, letterSpacing = (-0.6).sp, fontFeatureSettings = TABULAR),
+    headlineMedium = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 30.sp, lineHeight = 38.sp, letterSpacing = (-0.4).sp),
+    headlineSmall = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 32.sp, fontFeatureSettings = TABULAR),
+    titleLarge = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 28.sp, fontFeatureSettings = TABULAR),
     titleMedium = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 24.sp, fontFeatureSettings = TABULAR),
     bodyLarge = TextStyle(fontFamily = Sans, fontSize = 16.sp, lineHeight = 25.sp),
     bodyMedium = TextStyle(fontFamily = Sans, fontSize = 14.sp, lineHeight = 21.sp),

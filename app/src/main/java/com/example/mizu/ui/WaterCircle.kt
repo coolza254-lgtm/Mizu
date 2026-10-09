@@ -36,8 +36,10 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -84,15 +86,12 @@ fun HeroRing(
             val inner = ringRadius - stroke / 2f - 14.dp.toPx()
             val c = center
 
-            // soft halo
-            drawCircle(Brush.radialGradient(listOf(MizuColors.Water.copy(alpha = 0.16f), Color.Transparent), c, outer), outer, c)
-
             // track + progress arc (rotated so the gradient seam sits at 12 o'clock)
             drawCircle(MizuColors.Line, ringRadius, c, style = Stroke(stroke))
             if (level > 0f) {
                 rotate(-90f, c) {
                     drawArc(
-                        brush = Brush.sweepGradient(listOf(MizuColors.Aqua, MizuColors.Water, MizuColors.WaterDeep), c),
+                        color = MizuColors.WaterDeep,
                         startAngle = 0f,
                         sweepAngle = 360f * level,
                         useCenter = false,
@@ -101,28 +100,24 @@ fun HeroRing(
                         style = Stroke(stroke, cap = StrokeCap.Round),
                     )
                 }
-                // cover the rounded start cap so the sweep-gradient seam never shows
-                drawCircle(MizuColors.Aqua, stroke / 2f, Offset(c.x, c.y - ringRadius))
                 // knob at the end of the arc
                 val a = (-90f + 360f * level) * (PI / 180f).toFloat()
                 val knob = Offset(c.x + ringRadius * cos(a), c.y + ringRadius * sin(a))
-                drawCircle(MizuColors.WaterDeep.copy(alpha = 0.18f), stroke * 0.95f, knob)
-                drawCircle(Color.White, stroke * 0.42f, knob)
+                drawCircle(Color.White, stroke * 0.8f, knob)
+                drawCircle(MizuColors.Ink, stroke * 0.8f, knob, style = Stroke(InkStroke.toPx()))
             }
 
             // glass of water
             val glass = Path().apply { addOval(Rect(c, inner)) }
-            drawCircle(MizuColors.Mist, inner, c)
+            drawCircle(Color.White, inner, c)
             clipPath(glass) {
                 val top = c.y + inner - (2 * inner) * level
                 val amp = if (level <= 0f || level >= 1f) 0f else 7.dp.toPx()
-                wave(top - 4.dp.toPx(), amp, phase + 1.9f, MizuColors.Aqua.copy(alpha = 0.55f), Brush.verticalGradient(listOf(MizuColors.Aqua.copy(alpha = 0.6f), MizuColors.Water.copy(alpha = 0.5f))))
-                wave(top, amp, phase, MizuColors.Water, Brush.verticalGradient(listOf(MizuColors.Water.copy(alpha = 0.85f), MizuColors.WaterDeep), startY = top, endY = c.y + inner))
+                wave(top - 4.dp.toPx(), amp, phase + 1.9f, MizuColors.Aqua, Brush.linearGradient(listOf(MizuColors.Aqua, MizuColors.Aqua)))
+                wave(top, amp, phase, MizuColors.Water, Brush.linearGradient(listOf(MizuColors.Water, MizuColors.Water)))
                 if (level > 0.04f) bubbles(c, inner, top, rise)
-                // glass highlight
-                drawCircle(Color.White.copy(alpha = 0.35f), inner * 0.16f, Offset(c.x - inner * 0.48f, c.y - inner * 0.46f))
             }
-            drawCircle(Color.White.copy(alpha = 0.9f), inner, c, style = Stroke(2.dp.toPx()))
+            drawCircle(MizuColors.Ink, inner, c, style = Stroke(2.dp.toPx()))
 
             // goal burst: droplets flying outward and fading
             if (burst.value < 1f) {
@@ -131,12 +126,13 @@ fun HeroRing(
                     val ang = (i / 14f) * 2f * PI.toFloat()
                     val dist = ringRadius * (0.55f + 0.75f * t)
                     val p = Offset(c.x + dist * cos(ang), c.y + dist * sin(ang))
-                    drawCircle(MizuColors.Water.copy(alpha = (1f - t) * 0.9f), (5.dp.toPx()) * (1f - t * 0.5f), p)
+                    drawCircle(MizuColors.Water.copy(alpha = 1f - t), (6.dp.toPx()) * (1f - t * 0.5f), p)
+                    drawCircle(MizuColors.Ink.copy(alpha = 1f - t), (6.dp.toPx()) * (1f - t * 0.5f), p, style = Stroke(1.dp.toPx()))
                 }
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            val onWater = level > 0.72f
+            val onWater = false // flat light water: ink text reads on both paper and water
             Text(
                 shownMl.grouped(),
                 style = MaterialTheme.typography.displayLarge,
@@ -198,7 +194,7 @@ fun MiniRing(progress: Float, modifier: Modifier = Modifier, size: Dp = 40.dp, s
         drawCircle(MizuColors.Line, r, style = Stroke(s))
         if (progress > 0f) {
             drawArc(
-                brush = Brush.linearGradient(listOf(MizuColors.Aqua, MizuColors.WaterDeep)),
+                color = MizuColors.WaterDeep,
                 startAngle = -90f,
                 sweepAngle = 360f * progress.coerceIn(0f, 1f),
                 useCenter = false,
@@ -206,6 +202,61 @@ fun MiniRing(progress: Float, modifier: Modifier = Modifier, size: Dp = 40.dp, s
                 size = Size(r * 2, r * 2),
                 style = Stroke(s, cap = StrokeCap.Round),
             )
+        }
+    }
+}
+
+/**
+ * Today as a ruler (reminder window start to end): hour ticks, a droplet for every drink sized by amount,
+ * and a "now" pin. Inspired by editorial timeline graphics.
+ */
+@Composable
+fun DayTimeline(
+    logs: List<com.example.mizu.core.DrinkLog>,
+    start: java.time.LocalTime,
+    end: java.time.LocalTime,
+    now: java.time.LocalDateTime,
+    modifier: Modifier = Modifier,
+) {
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val labelStyle = MonoLabel.copy(color = MizuColors.InkSoft, fontSize = 11.sp)
+    val startMin = start.toSecondOfDay() / 60f
+    val endMin = end.toSecondOfDay() / 60f
+    Canvas(modifier) {
+        if (endMin <= startMin) return@Canvas
+        val pad = 14.dp.toPx()
+        val lineY = size.height * 0.62f
+        val w = size.width - pad * 2
+        fun xFor(minute: Float) = pad + w * ((minute - startMin) / (endMin - startMin)).coerceIn(0f, 1f)
+
+        drawLine(MizuColors.Ink, Offset(pad, lineY), Offset(pad + w, lineY), strokeWidth = 2.dp.toPx())
+        var h = kotlin.math.ceil(startMin / 60f).toInt()
+        while (h * 60 <= endMin) {
+            val x = xFor(h * 60f)
+            val major = h % 4 == 0
+            drawLine(MizuColors.Ink, Offset(x, lineY - 4.dp.toPx()), Offset(x, lineY + (if (major) 8 else 4).dp.toPx()), strokeWidth = 1.5.dp.toPx())
+            if (major) {
+                val label = measurer.measure("%02d".format(h), labelStyle)
+                drawText(label, topLeft = Offset(x - label.size.width / 2f, lineY + 11.dp.toPx()))
+            }
+            h++
+        }
+        // drinks
+        logs.filter { it.timestamp.toLocalDate() == now.toLocalDate() }.forEach { log ->
+            val minute = log.timestamp.toLocalTime().toSecondOfDay() / 60f
+            val x = xFor(minute)
+            val r = (4f + (log.amountMl.coerceIn(100, 600) - 100) / 500f * 5f).dp.toPx()
+            val cy = lineY - r - 6.dp.toPx()
+            drawCircle(MizuColors.Water, r, Offset(x, cy))
+            drawCircle(MizuColors.Ink, r, Offset(x, cy), style = Stroke(1.2.dp.toPx()))
+        }
+        // now pin
+        val nowMin = now.toLocalTime().toSecondOfDay() / 60f
+        if (nowMin in startMin..endMin) {
+            val x = xFor(nowMin)
+            drawLine(MizuColors.WaterDeep, Offset(x, 4.dp.toPx()), Offset(x, lineY), strokeWidth = 1.5.dp.toPx(),
+                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
+            drawCircle(MizuColors.WaterDeep, 3.5.dp.toPx(), Offset(x, 4.dp.toPx()))
         }
     }
 }

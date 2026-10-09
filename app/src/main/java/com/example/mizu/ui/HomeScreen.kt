@@ -8,6 +8,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -127,6 +128,21 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
             }
         }
         item { StatusLine(reached, suggestion, unit) }
+        item {
+            Column {
+                MonoKicker("mizu / timeline · ${today}")
+                GlassCard(Modifier.padding(top = 6.dp), padding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)) {
+                    DayTimeline(
+                        logs = todayLogs,
+                        start = s.reminderStart,
+                        end = s.reminderEnd,
+                        now = now,
+                        modifier = Modifier.fillMaxWidth().height(78.dp),
+                    )
+                }
+            }
+        }
+        item { MonoKicker("mizu / bottle") }
         item {
             val bottle = bottles.filter { it.isActive }.maxByOrNull { it.waterUpdatedAt ?: LocalDateTime.MIN }
             BottleCard(
@@ -256,6 +272,7 @@ private fun Greeting(now: LocalDateTime, locale: java.util.Locale) {
                 .size(56.dp)
                 .clip(CircleShape)
                 .background(MizuColors.Foam)
+                .border(InkStroke, MizuColors.Ink, CircleShape)
                 .bouncyClick(haptic = HapticKind.TICK) {
                     scope.launch {
                         haptics.tick()
@@ -286,7 +303,15 @@ private fun StatusLine(reached: Boolean, suggestion: Int, unit: String) {
             Text(
                 buildAnnotatedString {
                     append(parts.getOrElse(0) { "" })
-                    withStyle(SpanStyle(color = MizuColors.WaterDeep, fontWeight = FontWeight.SemiBold)) { append(amount) }
+                    withStyle(
+                        SpanStyle(
+                            color = MizuColors.Ink,
+                            background = MizuColors.Highlight,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                    ) { append(" $amount ") }
                     append(parts.getOrElse(1) { "" })
                 },
                 style = MaterialTheme.typography.bodyLarge,
@@ -300,7 +325,7 @@ private fun StatusLine(reached: Boolean, suggestion: Int, unit: String) {
 @Composable
 private fun StatTile(icon: ImageVector, value: String, label: String, modifier: Modifier = Modifier) {
     GlassCard(modifier, padding = PaddingValues(horizontal = 14.dp, vertical = 16.dp)) {
-        Icon(icon, null, tint = MizuColors.Water, modifier = Modifier.size(20.dp))
+        Icon(icon, null, tint = MizuColors.WaterDeep, modifier = Modifier.size(20.dp))
         Column {
             Text(value, style = MaterialTheme.typography.titleLarge, color = MizuColors.Ink, maxLines = 1)
             Text(label, style = MaterialTheme.typography.labelSmall, color = MizuColors.InkSoft, maxLines = 1)
@@ -315,14 +340,15 @@ private fun QuickAddTile(ml: Int, unit: String, iconSize: Dp, modifier: Modifier
         modifier
             .heightIn(min = 120.dp)
             .clip(shape)
-            .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(MizuColors.Foam, MizuColors.Mist)))
+            .background(MizuColors.Foam)
+            .border(InkStroke, MizuColors.Ink, shape)
             .bouncyClick(haptic = HapticKind.SUCCESS, pressedScale = 0.92f, onClick = onClick)
             .padding(vertical = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Box(Modifier.height(36.dp), contentAlignment = Alignment.BottomCenter) {
-            Icon(Icons.Rounded.WaterDrop, null, tint = MizuColors.Water, modifier = Modifier.size(iconSize))
+            Icon(Icons.Rounded.WaterDrop, null, tint = MizuColors.WaterDeep, modifier = Modifier.size(iconSize))
         }
         Spacer(Modifier.height(10.dp))
         Text("+${ml.grouped()}", style = MaterialTheme.typography.titleLarge, color = MizuColors.Ink)
@@ -481,8 +507,9 @@ fun TimelineRow(log: DrinkLog, isFirst: Boolean, isLast: Boolean, onClick: (() -
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(Color.White)
+            .border(1.dp, MizuColors.Ink, RoundedCornerShape(18.dp))
             .then(if (onClick != null) Modifier.bouncyClick(pressedScale = 0.98f, haptic = HapticKind.TICK, onClick = onClick) else Modifier)
             .heightIn(min = 68.dp)
             .padding(horizontal = 4.dp),
@@ -490,9 +517,9 @@ fun TimelineRow(log: DrinkLog, isFirst: Boolean, isLast: Boolean, onClick: (() -
     ) {
         Text(
             log.timestamp.format(TIME_FORMAT),
-            style = MaterialTheme.typography.titleMedium,
+            style = MonoLabel.copy(fontSize = androidx.compose.ui.unit.TextUnit.Unspecified),
             color = MizuColors.InkSoft,
-            modifier = Modifier.width(56.dp),
+            modifier = Modifier.width(56.dp).padding(start = 12.dp),
         )
         // timeline rail with a dot
         Box(Modifier.width(28.dp).height(68.dp), contentAlignment = Alignment.Center) {
@@ -500,7 +527,7 @@ fun TimelineRow(log: DrinkLog, isFirst: Boolean, isLast: Boolean, onClick: (() -
                 Box(Modifier.width(2.dp).weight(1f).background(if (isFirst) Color.Transparent else MizuColors.Line))
                 Box(Modifier.width(2.dp).weight(1f).background(if (isLast) Color.Transparent else MizuColors.Line))
             }
-            Box(Modifier.size(12.dp).clip(CircleShape).background(MizuColors.Water))
+            Box(Modifier.size(12.dp).clip(CircleShape).background(MizuColors.Water).border(1.dp, MizuColors.Ink, CircleShape))
             Box(Modifier.size(5.dp).clip(CircleShape).background(Color.White))
         }
         Column(Modifier.weight(1f).padding(start = 10.dp)) {

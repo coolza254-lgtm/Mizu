@@ -211,7 +211,7 @@ private fun BottleChip(bottle: Bottle, selected: Boolean, ml: String, onClick: (
             .width(150.dp)
             .clip(shape)
             .background(if (selected) MizuColors.Foam else Color.White)
-            .border(if (selected) 1.5.dp else 1.dp, if (selected) MizuColors.Water else MizuColors.Line, shape)
+            .border(if (selected) 2.dp else 1.dp, MizuColors.Ink, shape)
             .bouncyClick(haptic = HapticKind.TICK, onClick = onClick)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -242,12 +242,12 @@ fun BottleGauge(previousWater: Int?, newWater: Int?, modifier: Modifier = Modifi
         val body = RoundRect(0f, neckH, w, h, CornerRadius(w * 0.28f, w * 0.28f))
         val bodyPath = Path().apply { addRoundRect(body) }
         // cap
-        drawRoundRect(MizuColors.WaterDeep, Offset((w - neckW) / 2f, 0f), Size(neckW, neckH * 0.9f), CornerRadius(8.dp.toPx(), 8.dp.toPx()))
-        drawPath(bodyPath, MizuColors.Mist)
+        drawRoundRect(MizuColors.Ink, Offset((w - neckW) / 2f, 0f), Size(neckW, neckH * 0.9f), CornerRadius(8.dp.toPx(), 8.dp.toPx()))
+        drawPath(bodyPath, Color.White)
         clipPath(bodyPath) {
             val top = h - (h - neckH) * level
             drawRect(
-                Brush.verticalGradient(listOf(MizuColors.Aqua, MizuColors.Water, MizuColors.WaterDeep), startY = top, endY = h),
+                MizuColors.Water,
                 topLeft = Offset(0f, top),
                 size = Size(w, h - top),
             )
@@ -255,9 +255,8 @@ fun BottleGauge(previousWater: Int?, newWater: Int?, modifier: Modifier = Modifi
                 val y = h - (h - neckH) * prevMark
                 drawLine(MizuColors.Ink.copy(alpha = 0.35f), Offset(0f, y), Offset(w, y), strokeWidth = 2.dp.toPx())
             }
-            drawRoundRect(Color.White.copy(alpha = 0.35f), Offset(w * 0.16f, neckH + 12.dp.toPx()), Size(w * 0.12f, (h - neckH) * 0.6f), CornerRadius(6.dp.toPx(), 6.dp.toPx()))
         }
-        drawPath(bodyPath, MizuColors.Line, style = Stroke(2.dp.toPx()))
+        drawPath(bodyPath, MizuColors.Ink, style = Stroke(2.dp.toPx()))
     }
 }
 

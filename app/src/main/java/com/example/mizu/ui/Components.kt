@@ -58,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -122,7 +123,7 @@ fun Modifier.bouncyClick(
 // Surfaces
 // ---------------------------------------------------------------------------------------------
 
-/** White card with a hairline border and a soft blue shadow. */
+/** Flat card with an ink outline (editorial style). */
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
@@ -131,12 +132,11 @@ fun GlassCard(
     background: Color = Color.White,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = MaterialTheme.shapes.large
+    val shape = RoundedCornerShape(20.dp)
     val base = modifier
-        .shadow(18.dp, shape, ambientColor = MizuColors.Water.copy(alpha = 0.10f), spotColor = MizuColors.Water.copy(alpha = 0.22f))
         .clip(shape)
         .background(background)
-        .border(1.dp, MizuColors.Line, shape)
+        .border(InkStroke, MizuColors.Ink, shape)
     Column(
         modifier = (if (onClick != null) base.bouncyClick(pressedScale = 0.97f, onClick = onClick) else base).padding(padding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -146,15 +146,18 @@ fun GlassCard(
 
 @Composable
 fun IconBadge(icon: ImageVector, modifier: Modifier = Modifier, size: Dp = 40.dp, tint: Color = MizuColors.WaterDeep, background: Color = MizuColors.Foam) {
-    Box(modifier.size(size).clip(CircleShape).background(background), contentAlignment = Alignment.Center) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(size * 0.5f))
+    Box(
+        modifier.size(size).clip(CircleShape).background(background).border(1.dp, MizuColors.Ink, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = MizuColors.Ink, modifier = Modifier.size(size * 0.5f))
     }
 }
 
 @Composable
 fun SectionLabel(text: String, modifier: Modifier = Modifier, trailing: (@Composable RowScope.() -> Unit)? = null) {
     Row(modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, style = MaterialTheme.typography.labelMedium, color = MizuColors.InkSoft, modifier = Modifier.weight(1f))
+        Text(text, style = MaterialTheme.typography.labelLarge, color = MizuColors.Ink, modifier = Modifier.weight(1f))
         trailing?.invoke(this)
     }
 }
@@ -162,7 +165,7 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier, trailing: (@Compos
 @Composable
 fun Pill(text: String, modifier: Modifier = Modifier, background: Color = MizuColors.Foam, color: Color = MizuColors.WaterDeep, icon: ImageVector? = null) {
     Row(
-        modifier.clip(CircleShape).background(background).padding(horizontal = 12.dp, vertical = 6.dp),
+        modifier.clip(CircleShape).background(background).border(1.dp, MizuColors.Ink, CircleShape).padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -187,16 +190,16 @@ fun PrimaryButton(
     val shape = CircleShape
     Row(
         modifier
-            .heightIn(min = 58.dp)
-            .then(if (enabled) Modifier.shadow(14.dp, shape, spotColor = MizuColors.WaterDeep.copy(alpha = 0.45f)) else Modifier)
+            .heightIn(min = 56.dp)
             .clip(shape)
-            .background(if (enabled) MizuColors.ButtonGradient else Brush.linearGradient(listOf(MizuColors.Line, MizuColors.Line)))
+            .background(if (enabled) MizuColors.Water else MizuColors.Line.copy(alpha = 0.5f))
+            .border(InkStroke, if (enabled) MizuColors.Ink else MizuColors.InkFaint, shape)
             .bouncyClick(enabled = enabled, haptic = haptic, onClick = onClick)
             .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val color = if (enabled) Color.White else MizuColors.InkFaint
+        val color = if (enabled) MizuColors.Ink else MizuColors.InkFaint
         if (icon != null) {
             Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
@@ -217,9 +220,10 @@ fun SoftButton(
 ) {
     Row(
         modifier
-            .heightIn(min = 58.dp)
+            .heightIn(min = 56.dp)
             .clip(CircleShape)
-            .background(MizuColors.Foam)
+            .background(Color.White)
+            .border(InkStroke, if (enabled) MizuColors.Ink else MizuColors.InkFaint, CircleShape)
             .bouncyClick(enabled = enabled, haptic = haptic, onClick = onClick)
             .padding(horizontal = 22.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.Center,
@@ -241,7 +245,7 @@ fun CircleIconButton(icon: ImageVector, contentDescription: String?, onClick: ()
             .size(MinTouch)
             .clip(CircleShape)
             .background(Color.White)
-            .border(1.dp, MizuColors.Line, CircleShape)
+            .border(InkStroke, if (enabled) MizuColors.Ink else MizuColors.InkFaint, CircleShape)
             .bouncyClick(enabled = enabled, haptic = HapticKind.TICK, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -321,11 +325,12 @@ fun MizuSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
             onCheckedChange(it)
         },
         colors = SwitchDefaults.colors(
-            checkedTrackColor = MizuColors.WaterDeep,
-            checkedThumbColor = Color.White,
-            uncheckedTrackColor = MizuColors.Line,
-            uncheckedThumbColor = Color.White,
-            uncheckedBorderColor = MizuColors.Line,
+            checkedTrackColor = MizuColors.Water,
+            checkedThumbColor = MizuColors.Ink,
+            checkedBorderColor = MizuColors.Ink,
+            uncheckedTrackColor = Color.White,
+            uncheckedThumbColor = MizuColors.Ink,
+            uncheckedBorderColor = MizuColors.Ink,
         ),
     )
 }
@@ -337,8 +342,8 @@ fun <T> PillSelector(options: List<Pair<T, String>>, selected: T, onSelect: (T) 
         modifier
             .fillMaxWidth()
             .clip(CircleShape)
-            .background(MizuColors.Mist)
-            .border(1.dp, MizuColors.Line, CircleShape)
+            .background(Color.White)
+            .border(InkStroke, MizuColors.Ink, CircleShape)
             .padding(4.dp),
     ) {
         options.forEach { (value, label) ->
@@ -349,7 +354,8 @@ fun <T> PillSelector(options: List<Pair<T, String>>, selected: T, onSelect: (T) 
                     .weight(1f)
                     .heightIn(min = 44.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = bg))
+                    .background(MizuColors.Water.copy(alpha = bg))
+                    .border(1.dp, MizuColors.Ink.copy(alpha = bg), CircleShape)
                     .bouncyClick(haptic = HapticKind.TICK, pressedScale = 0.97f) { if (!isSelected) onSelect(value) },
                 contentAlignment = Alignment.Center,
             ) {
@@ -364,6 +370,29 @@ fun <T> PillSelector(options: List<Pair<T, String>>, selected: T, onSelect: (T) 
         }
     }
 }
+
+/** Small monospace kicker above a card, like a file name over a preview ("mizu / today"). */
+@Composable
+fun MonoKicker(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = MonoLabel, color = MizuColors.InkSoft, modifier = modifier.padding(start = 4.dp, top = 6.dp))
+}
+
+/** Paper background with a faint dot grid. */
+fun Modifier.dotGrid(spacing: Dp = 22.dp): Modifier = this
+    .background(MizuColors.Paper)
+    .drawBehind {
+        val step = spacing.toPx()
+        val r = 1.1.dp.toPx()
+        var y = step / 2f
+        while (y < size.height) {
+            var x = step / 2f
+            while (x < size.width) {
+                drawCircle(MizuColors.Dot, r, androidx.compose.ui.geometry.Offset(x, y))
+                x += step
+            }
+            y += step
+        }
+    }
 
 // ---------------------------------------------------------------------------------------------
 // Number entry
@@ -388,8 +417,9 @@ fun NumberPad(onDigit: (Int) -> Unit, onBackspace: () -> Unit, modifier: Modifie
                                 Icon(Icons.AutoMirrored.Rounded.Backspace, stringResource(R.string.delete), tint = MizuColors.InkSoft)
                             }
                             else -> Box(
-                                Modifier.fillMaxWidth().height(keyHeight).clip(RoundedCornerShape(20.dp))
-                                    .background(MizuColors.Mist)
+                                Modifier.fillMaxWidth().height(keyHeight).clip(RoundedCornerShape(18.dp))
+                                    .background(Color.White)
+                                    .border(1.dp, MizuColors.Ink, RoundedCornerShape(18.dp))
                                     .bouncyClick(haptic = HapticKind.TICK) { onDigit(key) },
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -412,10 +442,10 @@ fun MizuSheet(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = Color.White,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        containerColor = MizuColors.Paper,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         dragHandle = {
-            Box(Modifier.padding(top = 12.dp, bottom = 4.dp).size(width = 40.dp, height = 4.dp).clip(CircleShape).background(MizuColors.Line))
+            Box(Modifier.padding(top = 12.dp, bottom = 4.dp).size(width = 40.dp, height = 4.dp).clip(CircleShape).background(MizuColors.Ink))
         },
     ) {
         Column(
