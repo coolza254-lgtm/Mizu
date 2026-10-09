@@ -128,6 +128,9 @@ class MizuViewModel(app: Application) : AndroidViewModel(app) {
 
     fun fillBottle(id: Long) = viewModelScope.launch { c.repository.fillBottle(id) }
 
+    /** Refill the bottle in use; [onDone] gets it, or null when its capacity isn't known yet. */
+    fun fillCurrentBottle(onDone: (Bottle?) -> Unit) = viewModelScope.launch { onDone(c.repository.fillCurrentBottle()) }
+
     fun saveBottle(bottle: Bottle) = viewModelScope.launch { c.repository.saveBottle(bottle) }
 
     fun archiveBottle(id: Long) = viewModelScope.launch { c.repository.archiveBottle(id) }

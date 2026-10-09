@@ -40,6 +40,7 @@ data class DrinkLogEntity(
     val bottleId: Long?,
     val weightBeforeG: Int?,
     val weightAfterG: Int?,
+    val estimatedFromMs: Long? = null,
 )
 
 fun BottleEntity.toModel() = Bottle(id, name, emptyWeightG, currentWaterG, isActive, capacityMl, waterUpdatedAt?.toLocalDateTime())
@@ -54,6 +55,7 @@ fun DrinkLogEntity.toModel() = DrinkLog(
     bottleId = bottleId,
     weightBeforeG = weightBeforeG,
     weightAfterG = weightAfterG,
+    estimatedFrom = estimatedFromMs?.toLocalDateTime(),
 )
 
 fun DrinkLog.toEntity() = DrinkLogEntity(
@@ -64,6 +66,7 @@ fun DrinkLog.toEntity() = DrinkLogEntity(
     bottleId = bottleId,
     weightBeforeG = weightBeforeG,
     weightAfterG = weightAfterG,
+    estimatedFromMs = estimatedFrom?.toEpochMs(),
 )
 
 @Dao
@@ -108,7 +111,7 @@ interface MizuDao {
     suspend fun updateBottle(bottle: BottleEntity)
 }
 
-@Database(entities = [BottleEntity::class, DrinkLogEntity::class], version = 2, exportSchema = false)
+@Database(entities = [BottleEntity::class, DrinkLogEntity::class], version = 3, exportSchema = false)
 abstract class MizuDatabase : RoomDatabase() {
     abstract fun dao(): MizuDao
 
@@ -121,9 +124,16 @@ abstract class MizuDatabase : RoomDatabase() {
             }
         }
 
+        /** v3: start of the estimated drinking period for weighed drinks. */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE drink_logs ADD COLUMN estimatedFromMs INTEGER")
+            }
+        }
+
         fun create(context: Context): MizuDatabase =
             Room.databaseBuilder(context, MizuDatabase::class.java, "mizu.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }

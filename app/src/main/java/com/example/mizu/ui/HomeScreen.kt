@@ -515,8 +515,9 @@ fun TimelineRow(log: DrinkLog, isFirst: Boolean, isLast: Boolean, onClick: (() -
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val estimatedFrom = log.estimatedFrom
         Text(
-            log.timestamp.format(TIME_FORMAT),
+            (if (estimatedFrom != null) "≈" else "") + log.timestamp.format(TIME_FORMAT),
             style = MonoLabel.copy(fontSize = androidx.compose.ui.unit.TextUnit.Unspecified),
             color = MizuColors.InkSoft,
             modifier = Modifier.width(56.dp).padding(start = 12.dp),
@@ -532,7 +533,13 @@ fun TimelineRow(log: DrinkLog, isFirst: Boolean, isLast: Boolean, onClick: (() -
         }
         Column(Modifier.weight(1f).padding(start = 10.dp)) {
             Text("${log.amountMl.grouped()} ${stringResource(R.string.unit_ml)}", style = MaterialTheme.typography.titleMedium, color = MizuColors.Ink)
-            Text(sourceLabel, style = MaterialTheme.typography.bodyMedium, color = MizuColors.InkSoft)
+            val detail = if (estimatedFrom != null) {
+                val until = log.timestamp.plus(java.time.Duration.between(estimatedFrom, log.timestamp))
+                stringResource(R.string.log_estimated_range, estimatedFrom.format(TIME_FORMAT), until.format(TIME_FORMAT)) + " · " + sourceLabel
+            } else {
+                sourceLabel
+            }
+            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MizuColors.InkSoft)
         }
         IconBadge(icon, size = 34.dp, modifier = Modifier.padding(end = 10.dp))
     }

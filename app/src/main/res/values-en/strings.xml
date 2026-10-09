@@ -154,6 +154,12 @@
     <string name="toast_filled">Filled to %1$s ml</string>
     <string name="bottle_capacity_label">Capacity (blank = learn from fills)</string>
     <string name="capacity_short">holds %1$s ml</string>
+    <string name="tile_update_water">Update water</string>
+    <string name="tile_fill_bottle">Refill bottle</string>
+    <string name="tile_needs_weigh">Weigh the bottle once first</string>
+    <string name="tile_water_left">%1$s / %2$s ml</string>
+    <string name="log_estimated_range">around %1$s–%2$s</string>
+    <string name="preview_drink_estimated">Will log %1$s ml · drunk %2$s–%3$s</string>
     <string name="undo">Undo</string>
     <string name="update_idle">Look for a newer version</string>
     <string name="value_range">Enter %1$s–%2$s %3$s</string>

@@ -62,6 +62,12 @@ import com.example.mizu.util.localizedWrapper
 
 private enum class Tab { HOME, HISTORY, SETTINGS }
 
+/** A request from a Quick panel tile or launcher shortcut. Each instance is handled once. */
+sealed class QuickRequest(val id: Long = System.nanoTime()) {
+    class OpenWeigh : QuickRequest()
+    class Fill : QuickRequest()
+}
+
 private enum class Overlay { NONE, WEIGH, EXPORT }
 
 /** Clears the floating navigation bar at the bottom of scrolling screens. */
@@ -72,7 +78,12 @@ private val NavClearance = 128.dp
  * @param demo debug-only: seed sample data.
  */
 @Composable
-fun MizuRoot(vm: MizuViewModel = viewModel(), startScreen: String? = null, demo: Boolean = false) {
+fun MizuRoot(
+    vm: MizuViewModel = viewModel(),
+    startScreen: String? = null,
+    demo: Boolean = false,
+    quickRequest: QuickRequest? = null,
+) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val base = LocalContext.current
     val haptics = remember(base) { Haptics(base.applicationContext) }
@@ -93,13 +104,13 @@ fun MizuRoot(vm: MizuViewModel = viewModel(), startScreen: String? = null, demo:
             LocalConfiguration provides localized.resources.configuration,
             LocalHaptics provides haptics,
         ) {
-            MizuShell(vm, startScreen)
+            MizuShell(vm, startScreen, quickRequest)
         }
     }
 }
 
 @Composable
-private fun MizuShell(vm: MizuViewModel, startScreen: String?) {
+private fun MizuShell(vm: MizuViewModel, startScreen: String?, quickRequest: QuickRequest?) {
     var tab by rememberSaveable {
         mutableStateOf(
             when (startScreen) {
@@ -117,6 +128,24 @@ private fun MizuShell(vm: MizuViewModel, startScreen: String?) {
     val haptics = LocalHaptics.current
 
     NotificationPermissionPrompt(vm)
+
+    // Quick panel tile / launcher shortcut: open the weigh screen, or refill the bottle in use.
+    val filledText = stringResource(R.string.toast_filled)
+    val needsWeighText = stringResource(R.string.tile_needs_weigh)
+    LaunchedEffect(quickRequest?.id) {
+        when (quickRequest) {
+            is QuickRequest.OpenWeigh -> overlay = Overlay.WEIGH
+            is QuickRequest.Fill -> vm.fillCurrentBottle { filled ->
+                if (filled != null) {
+                    haptics.success()
+                    toast.show(String.format(filledText, (filled.capacityMl ?: 0).grouped()))
+                } else {
+                    toast.show(needsWeighText)
+                }
+            }
+            null -> Unit
+        }
+    }
     BackHandler(enabled = overlay != Overlay.NONE) { overlay = Overlay.NONE }
     BackHandler(enabled = overlay == Overlay.NONE && tab != Tab.HOME) { tab = Tab.HOME }
 

@@ -26,7 +26,32 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- Quick panel tiles -->
+        <service
+            android:name=".quick.UpdateWaterTile"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_weigh"
+            android:label="@string/tile_update_water"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".quick.FillBottleTile"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_fill"
+            android:label="@string/tile_fill_bottle"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
         <receiver
             android:name=".reminder.ReminderActionReceiver"

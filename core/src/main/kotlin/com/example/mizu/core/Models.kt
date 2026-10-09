@@ -35,6 +35,8 @@ data class DrinkLog(
     val bottleId: Long? = null,
     val weightBeforeG: Int? = null,
     val weightAfterG: Int? = null,
+    /** For weighed drinks: start of the period the water was drunk in ([timestamp] is its estimated midpoint). */
+    val estimatedFrom: LocalDateTime? = null,
 )
 
 data class MizuSettings(

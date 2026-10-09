@@ -122,3 +122,36 @@ class HistoryCalculatorTest {
         assertEquals(listOf(0, 300, 0), out.map { it.totalMl })
     }
 }
+
+class DrinkTimeEstimatorTest {
+    private val day = LocalDate.of(2026, 10, 9)
+    private val settings = MizuSettings(reminderStart = java.time.LocalTime.of(8, 0), reminderEnd = java.time.LocalTime.of(22, 0))
+
+    @Test
+    fun midpointOfTheGapSinceLastWeighing() {
+        val e = DrinkTimeEstimator.estimate(day.atTime(10, 0), day.atTime(12, 0), settings)
+        assertEquals(day.atTime(11, 0), e.at)
+        assertEquals(day.atTime(10, 0), e.from)
+    }
+
+    @Test
+    fun overnightGapStartsAtTheWindowStart() {
+        val e = DrinkTimeEstimator.estimate(day.minusDays(1).atTime(22, 0), day.atTime(9, 0), settings)
+        assertEquals(day.atTime(8, 30), e.at)
+        assertEquals(day.atTime(8, 0), e.from)
+    }
+
+    @Test
+    fun shortGapOrUnknownStartUsesNow() {
+        assertEquals(DrinkTimeEstimate(day.atTime(12, 0), null), DrinkTimeEstimator.estimate(day.atTime(11, 55), day.atTime(12, 0), settings))
+        assertEquals(DrinkTimeEstimate(day.atTime(12, 0), null), DrinkTimeEstimator.estimate(null, day.atTime(12, 0), settings))
+    }
+
+    @Test
+    fun lookbackIsCappedAt12Hours() {
+        // Before the window opens: 02:00 weigh after a 3-day gap -> period 14:00 yesterday .. 02:00
+        val e = DrinkTimeEstimator.estimate(day.minusDays(3).atTime(9, 0), day.atTime(2, 0), settings)
+        assertEquals(day.minusDays(1).atTime(14, 0), e.from)
+        assertEquals(day.minusDays(1).atTime(20, 0), e.at)
+    }
+}

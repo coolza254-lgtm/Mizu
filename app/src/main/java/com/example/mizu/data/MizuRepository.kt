@@ -6,9 +6,12 @@ import com.example.mizu.core.BottlePlanner
 import com.example.mizu.core.CsvExporter
 import com.example.mizu.core.DrinkLog
 import com.example.mizu.core.DrinkSource
+import com.example.mizu.core.DrinkTimeEstimator
 import com.example.mizu.core.WeighOutcome
 import com.example.mizu.reminder.ReminderScheduler
 import com.example.mizu.util.toEpochMs
+import com.example.mizu.util.toLocalDateTime
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlinx.coroutines.flow.Flow
@@ -82,10 +85,15 @@ class MizuRepository(
             is WeighOutcome.SetBaseline -> dao.updateBottle(filled(outcome.waterG))
             is WeighOutcome.AskRefill -> dao.updateBottle(filled(outcome.newWaterG))
             is WeighOutcome.Drink -> db.withTransaction {
+                // The water went down some time since the last weighing: log it at the estimated midpoint.
+                val estimate = DrinkTimeEstimator.estimate(
+                    bottle.waterUpdatedAt?.toLocalDateTime(), at, settings.settings.first(),
+                )
                 dao.insertLog(
                     DrinkLogEntity(
-                        timestamp = stamp, amountMl = outcome.amountMl, source = DrinkSource.WEIGH.name,
+                        timestamp = estimate.at.toEpochMs(), amountMl = outcome.amountMl, source = DrinkSource.WEIGH.name,
                         bottleId = bottleId, weightBeforeG = outcome.weightBeforeG, weightAfterG = outcome.weightAfterG,
+                        estimatedFromMs = estimate.from?.toEpochMs(),
                     ),
                 )
                 dao.updateBottle(bottle.copy(currentWaterG = outcome.newWaterG, waterUpdatedAt = stamp))
@@ -93,6 +101,18 @@ class MizuRepository(
             WeighOutcome.NoChange, WeighOutcome.Invalid -> return
         }
         onLogsChanged()
+    }
+
+    /** The bottle in use: the active one whose water level was updated most recently. */
+    suspend fun currentBottle(): Bottle? =
+        dao.allBottles().filter { it.isActive }.maxByOrNull { it.waterUpdatedAt ?: Long.MIN_VALUE }?.toModel()
+
+    /** Fill the bottle in use to its known capacity (quick tile / shortcut). Returns it, or null if no capacity yet. */
+    suspend fun fillCurrentBottle(): Bottle? {
+        val bottle = currentBottle() ?: return null
+        if (bottle.capacityMl == null) return null
+        fillBottle(bottle.id)
+        return dao.getBottle(bottle.id)?.toModel()
     }
 
     /** One-tap "filled to the top": water = known capacity, no weighing and no log. */

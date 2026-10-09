@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mizu.R
 import com.example.mizu.core.Bottle
+import com.example.mizu.core.DrinkTimeEstimator
 import com.example.mizu.core.WeighCalculator
 import com.example.mizu.core.WeighOutcome
 
@@ -125,7 +126,15 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
                     val rangeError = weightText.isNotEmpty() && !validWeight
                     val info = when {
                         rangeError -> stringResource(R.string.weight_range_error)
-                        outcome is WeighOutcome.Drink -> stringResource(R.string.preview_drink, outcome.amountMl.grouped())
+                        outcome is WeighOutcome.Drink -> {
+                            val estimate = DrinkTimeEstimator.estimate(bottle.waterUpdatedAt, java.time.LocalDateTime.now(), s)
+                            val from = estimate.from
+                            if (from != null) {
+                                stringResource(R.string.preview_drink_estimated, outcome.amountMl.grouped(), from.format(TIME_FORMAT), java.time.LocalDateTime.now().format(TIME_FORMAT))
+                            } else {
+                                stringResource(R.string.preview_drink, outcome.amountMl.grouped())
+                            }
+                        }
                         outcome is WeighOutcome.SetBaseline -> stringResource(R.string.preview_baseline)
                         outcome is WeighOutcome.AskRefill -> stringResource(R.string.preview_refill)
                         outcome == WeighOutcome.NoChange -> stringResource(R.string.weigh_no_change)
