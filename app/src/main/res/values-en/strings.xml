@@ -225,4 +225,5 @@
     <string name="unit_days">days</string>
     <string name="home_drinks_today">%1$d drinks today</string>
     <string name="home_timeline">Today · %1$d drinks</string>
+    <string name="fill_short">Refill</string>
 </resources>

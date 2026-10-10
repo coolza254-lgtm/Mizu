@@ -225,4 +225,5 @@
     <string name="unit_days">วัน</string>
     <string name="home_drinks_today">วันนี้ดื่ม %1$d ครั้ง</string>
     <string name="home_timeline">ไทม์ไลน์วันนี้ · %1$d ครั้ง</string>
+    <string name="fill_short">เติม</string>
 </resources>

@@ -376,7 +376,7 @@ private fun AdviceBlock(a: PaceAdvice) {
 private fun BottleTile(bottle: Bottle?, forecast: BottleForecast?, onWeigh: () -> Unit, onFill: (Bottle) -> Unit, modifier: Modifier = Modifier) {
     GlassCard(modifier, padding = PaddingValues(16.dp)) {
         Text(
-            stringResource(R.string.home_bottle, bottle?.name ?: "—"),
+            bottle?.name ?: "—",
             style = MaterialTheme.typography.labelMedium,
             color = MizuColors.InkFaint,
             maxLines = 1,
@@ -421,7 +421,7 @@ private fun BottleTile(bottle: Bottle?, forecast: BottleForecast?, onWeigh: () -
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             ChipButton(stringResource(R.string.weigh_short), MizuColors.Ink, Color.White, Modifier.weight(1f), onClick = onWeigh)
             ChipButton(
-                stringResource(R.string.fill_full),
+                stringResource(R.string.fill_short),
                 MizuColors.Foam,
                 MizuColors.WaterDeep,
                 Modifier.weight(1f),
