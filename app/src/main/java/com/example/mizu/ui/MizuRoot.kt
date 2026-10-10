@@ -17,7 +17,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -91,7 +90,7 @@ fun MizuRoot(
 
     LaunchedEffect(demo) { if (demo) vm.seedDemo() }
 
-    MizuTheme(font = settings?.font ?: com.example.mizu.core.AppFont.EDITORIAL) {
+    MizuTheme(font = settings?.font ?: com.example.mizu.core.AppFont.PROMPT) {
         val s = settings
         if (s == null) {
             Box(Modifier.fillMaxSize().background(MizuColors.Paper))
@@ -135,23 +134,31 @@ private fun MizuShell(vm: MizuViewModel, startScreen: String?, quickRequest: Qui
 
     NotificationPermissionPrompt(vm)
 
-    // Quick panel tile / launcher shortcut: open the weigh screen, or refill the bottle in use.
+    // Quick panel tile / launcher shortcut: open the weigh screen, or ask before refilling the bottle in use.
     val filledText = stringResource(R.string.toast_filled)
     val needsWeighText = stringResource(R.string.tile_needs_weigh)
+    var fillPrompt by remember { mutableStateOf<com.example.mizu.core.Bottle?>(null) }
     LaunchedEffect(quickRequest?.id) {
         when (quickRequest) {
             is QuickRequest.OpenWeigh -> overlay = Overlay.WEIGH
-            is QuickRequest.Fill -> vm.fillCurrentBottle { filled ->
-                if (filled != null) {
-                    haptics.success()
-                    sounds.fill()
-                    toast.show(String.format(filledText, (filled.capacityMl ?: 0).grouped()))
-                } else {
-                    toast.show(needsWeighText)
-                }
+            is QuickRequest.Fill -> vm.currentBottle { bottle ->
+                if (bottle?.capacityMl != null) fillPrompt = bottle else toast.show(needsWeighText)
             }
             null -> Unit
         }
+    }
+    fillPrompt?.let { bottle ->
+        FillConfirmSheet(
+            bottle = bottle,
+            onConfirm = {
+                fillPrompt = null
+                vm.fillBottle(bottle.id)
+                haptics.success()
+                sounds.fill()
+                toast.show(String.format(filledText, (bottle.capacityMl ?: 0).grouped()))
+            },
+            onDismiss = { fillPrompt = null },
+        )
     }
     BackHandler(enabled = overlay != Overlay.NONE) { overlay = Overlay.NONE }
     BackHandler(enabled = overlay == Overlay.NONE && tab != Tab.HOME) { tab = Tab.HOME }
@@ -209,8 +216,8 @@ private fun FloatingNav(tab: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = 
     Row(
         modifier
             .clip(CircleShape)
+            .shadow(16.dp, CircleShape, ambientColor = MizuColors.Ink.copy(alpha = 0.12f), spotColor = MizuColors.Ink.copy(alpha = 0.12f))
             .background(Color.White)
-            .border(2.dp, MizuColors.Ink, CircleShape)
             .padding(6.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -227,16 +234,15 @@ private fun NavItem(icon: ImageVector, label: String, selected: Boolean, onClick
         Modifier
             .heightIn(min = 52.dp)
             .clip(CircleShape)
-            .background(if (selected) MizuColors.Water else Color.Transparent)
-            .border(if (selected) 1.dp else 0.dp, if (selected) MizuColors.Ink else Color.Transparent, CircleShape)
+            .background(if (selected) MizuColors.Ink else Color.Transparent)
             .bouncyClick(haptic = HapticKind.NONE, pressedScale = 0.9f, onClick = onClick)
             .animateContentSize(tween(240))
             .padding(horizontal = if (selected) 20.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = label, tint = if (selected) MizuColors.Ink else MizuColors.InkSoft, modifier = Modifier.size(24.dp))
+        Icon(icon, contentDescription = label, tint = if (selected) Color.White else MizuColors.InkFaint, modifier = Modifier.size(24.dp))
         AnimatedVisibility(visible = selected, enter = fadeIn() + scaleIn(initialScale = 0.8f), exit = fadeOut()) {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = MizuColors.Ink, modifier = Modifier.padding(start = 8.dp))
+            Text(label, style = MaterialTheme.typography.labelLarge, color = Color.White, modifier = Modifier.padding(start = 8.dp))
         }
     }
 }

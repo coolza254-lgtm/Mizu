@@ -15,6 +15,20 @@ for screen in home history settings weigh; do
   adb exec-out screencap -p > "shots/$screen.png"
 done
 
+# Lower half of the dashboard.
+adb shell am start -S -W -n $PKG/.MainActivity --es mizu_screen home
+sleep 6
+adb shell input swipe 540 1700 540 500 600
+sleep 2
+adb exec-out screencap -p > "shots/home2.png"
+
+# Refill confirmation (launcher shortcut path; demo data has a bottle with a known capacity).
+adb shell am start -S -W -n $PKG/.MainActivity --es mizu_action fill
+sleep 6
+adb exec-out screencap -p > "shots/fill_confirm.png"
+adb shell input keyevent KEYCODE_BACK
+sleep 1
+
 # Full-screen alarm reminder.
 adb shell am start -S -W -n $PKG/.MainActivity --ez mizu_alarm true
 sleep 5

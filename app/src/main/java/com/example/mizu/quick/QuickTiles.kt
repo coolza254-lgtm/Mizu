@@ -1,5 +1,6 @@
 package com.example.mizu.quick
 
+import android.app.AlertDialog
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -75,17 +76,38 @@ class UpdateWaterTile : TileService() {
     }
 }
 
-/** Quick panel: "Refill bottle" sets the bottle in use back to its full amount, without weighing or opening the app. */
+/** Quick panel: "Refill bottle" sets the bottle in use back to its full amount after a confirm dialog, without weighing or opening the app. */
 class FillBottleTile : TileService() {
     override fun onStartListening() {
         super.onStartListening()
         refresh()
     }
 
+    /** Asks first (a stray tap in the quick panel is easy), then refills. */
     override fun onClick() {
         super.onClick()
         tileScope.launch {
             val ctx = localizedCtx()
+            val bottle = container.repository.currentBottle()
+            withContext(Dispatchers.Main) {
+                val capacity = bottle?.capacityMl
+                if (bottle == null || capacity == null) {
+                    Toast.makeText(applicationContext, ctx.getString(R.string.tile_needs_weigh), Toast.LENGTH_SHORT).show()
+                    return@withContext
+                }
+                val dialog = AlertDialog.Builder(this@FillBottleTile, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
+                    .setTitle(ctx.getString(R.string.fill_confirm_title))
+                    .setMessage(ctx.getString(R.string.fill_confirm_body, bottle.name, QuickActions.grouped(capacity)))
+                    .setPositiveButton(ctx.getString(R.string.fill_confirm_ok)) { _, _ -> fill(ctx) }
+                    .setNegativeButton(ctx.getString(R.string.cancel), null)
+                    .create()
+                showDialog(dialog)
+            }
+        }
+    }
+
+    private fun fill(ctx: Context) {
+        tileScope.launch {
             val filled = container.repository.fillCurrentBottle()
             withContext(Dispatchers.Main) {
                 val msg = if (filled != null) {

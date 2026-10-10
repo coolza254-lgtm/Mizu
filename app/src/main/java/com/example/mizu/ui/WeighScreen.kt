@@ -223,7 +223,7 @@ private fun BottleChip(bottle: Bottle, selected: Boolean, ml: String, onClick: (
             .width(150.dp)
             .clip(shape)
             .background(if (selected) MizuColors.Foam else Color.White)
-            .border(if (selected) 2.dp else 1.dp, MizuColors.Ink, shape)
+            .border(if (selected) 2.dp else 0.dp, if (selected) MizuColors.WaterDeep else Color.Transparent, shape)
             .bouncyClick(haptic = HapticKind.TICK, onClick = onClick)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),

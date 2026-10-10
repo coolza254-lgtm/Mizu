@@ -219,7 +219,7 @@ fun DayTimeline(
     modifier: Modifier = Modifier,
 ) {
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
-    val labelStyle = MonoLabel.copy(color = MizuColors.InkSoft, fontSize = 11.sp)
+    val labelStyle = MaterialTheme.typography.labelSmall.copy(color = MizuColors.InkFaint)
     val startMin = start.toSecondOfDay() / 60f
     val endMin = end.toSecondOfDay() / 60f
     Canvas(modifier) {
@@ -229,12 +229,12 @@ fun DayTimeline(
         val w = size.width - pad * 2
         fun xFor(minute: Float) = pad + w * ((minute - startMin) / (endMin - startMin)).coerceIn(0f, 1f)
 
-        drawLine(MizuColors.Ink, Offset(pad, lineY), Offset(pad + w, lineY), strokeWidth = 2.dp.toPx())
+        drawLine(MizuColors.Line, Offset(pad, lineY), Offset(pad + w, lineY), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
         var h = kotlin.math.ceil(startMin / 60f).toInt()
         while (h * 60 <= endMin) {
             val x = xFor(h * 60f)
             val major = h % 4 == 0
-            drawLine(MizuColors.Ink, Offset(x, lineY - 4.dp.toPx()), Offset(x, lineY + (if (major) 8 else 4).dp.toPx()), strokeWidth = 1.5.dp.toPx())
+            drawLine(if (major) MizuColors.InkFaint else MizuColors.Line, Offset(x, lineY - 3.dp.toPx()), Offset(x, lineY + (if (major) 6 else 3).dp.toPx()), strokeWidth = 1.2.dp.toPx(), cap = StrokeCap.Round)
             if (major) {
                 val label = measurer.measure("%02d".format(h), labelStyle)
                 drawText(label, topLeft = Offset(x - label.size.width / 2f, lineY + 11.dp.toPx()))
@@ -248,15 +248,15 @@ fun DayTimeline(
             val r = (4f + (log.amountMl.coerceIn(100, 600) - 100) / 500f * 5f).dp.toPx()
             val cy = lineY - r - 6.dp.toPx()
             drawCircle(MizuColors.Water, r, Offset(x, cy))
-            drawCircle(MizuColors.Ink, r, Offset(x, cy), style = Stroke(1.2.dp.toPx()))
+            drawCircle(MizuColors.WaterDeep, r, Offset(x, cy), style = Stroke(1.dp.toPx()))
         }
         // now pin
         val nowMin = now.toLocalTime().toSecondOfDay() / 60f
         if (nowMin in startMin..endMin) {
             val x = xFor(nowMin)
-            drawLine(MizuColors.WaterDeep, Offset(x, 4.dp.toPx()), Offset(x, lineY), strokeWidth = 1.5.dp.toPx(),
+            drawLine(MizuColors.Warn, Offset(x, 4.dp.toPx()), Offset(x, lineY), strokeWidth = 1.5.dp.toPx(),
                 pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
-            drawCircle(MizuColors.WaterDeep, 3.5.dp.toPx(), Offset(x, 4.dp.toPx()))
+            drawCircle(MizuColors.Warn, 3.5.dp.toPx(), Offset(x, 4.dp.toPx()))
         }
     }
 }

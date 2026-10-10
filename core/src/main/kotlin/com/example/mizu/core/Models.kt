@@ -58,7 +58,7 @@ data class MizuSettings(
     val remindersEnabled: Boolean = true,
     val hapticsEnabled: Boolean = true,
     val soundEnabled: Boolean = true,
-    val font: AppFont = AppFont.EDITORIAL,
+    val font: AppFont = AppFont.PROMPT,
     // ---- reminder tuning ----
     val reminderMode: ReminderMode = ReminderMode.ADAPTIVE,
     /** Interval when on track (and the only interval in FIXED mode). */

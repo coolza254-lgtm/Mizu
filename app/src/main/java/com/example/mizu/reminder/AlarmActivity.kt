@@ -79,7 +79,7 @@ class AlarmActivity : ComponentActivity() {
             val s = settings
             val base = LocalContext.current
             val haptics = remember(base) { Haptics(base.applicationContext) }
-            MizuTheme(font = s?.font ?: com.example.mizu.core.AppFont.EDITORIAL) {
+            MizuTheme(font = s?.font ?: com.example.mizu.core.AppFont.PROMPT) {
                 if (s != null) {
                     val localized = remember(s.language, base) { base.localizedWrapper(s.language) }
                     CompositionLocalProvider(

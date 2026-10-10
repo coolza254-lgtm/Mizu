@@ -19,31 +19,35 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Mizu palette, editorial style: warm paper, near-black ink outlines, flat pastel water blues.
- * (Names are kept from the first theme so every screen picks up the new look.)
+ * Mizu palette, clean "soft tiles" style: cool pale grey background, borderless white tiles, ink for primary
+ * actions and water blues for progress. (Names are kept from the first theme so every screen picks up the look.)
  */
 object MizuColors {
-    val Paper = Color(0xFFF5F4EF)
-    val Dot = Color(0xFFD6D3CA)
+    val Paper = Color(0xFFF4F6F9)
+    val Dot = Color(0xFFE3E7ED)
     val Water = Color(0xFF8CC4EA)
     val WaterDeep = Color(0xFF2F6FA8)
     val Aqua = Color(0xFFBFDDF3)
     val Highlight = Color(0xFFBFDDF3)
     val Ink = Color(0xFF1C2430)
-    val InkSoft = Color(0xFF5B6472)
-    val InkFaint = Color(0xFF9AA0A8)
+    val InkSoft = Color(0xFF5B6675)
+    val InkFaint = Color(0xFF8A94A3)
     val Mist = Color(0xFFFFFFFF)
-    val Foam = Color(0xFFDCEBF7)
-    val Line = Color(0xFFD8D5CD)
+    val Foam = Color(0xFFEAF2FA)
+    val Line = Color(0xFFE4EAF1)
     val Danger = Color(0xFFC2504A)
     val White = Color.White
+    val Warn = Color(0xFFB4532A)
+    val WarnSoft = Color(0xFFFFF2EA)
+    val Good = Color(0xFF2E7D5B)
+    val GoodSoft = Color(0xFFE8F5EE)
 
     val ButtonGradient = Brush.linearGradient(listOf(Water, Water))
     val WaterGradient = Brush.verticalGradient(listOf(Aqua, Water))
     val BackdropGradient = Brush.verticalGradient(listOf(Paper, Paper))
 }
 
-/** Outline weight used on every card, button and chart. */
+/** Outline weight for the few remaining outlines (selection rings, chart marks). */
 val InkStroke = 1.5.dp
 
 private val Scheme = lightColorScheme(
@@ -115,7 +119,7 @@ private fun typography(font: AppFont): Typography {
 }
 
 @Composable
-fun MizuTheme(font: AppFont = AppFont.EDITORIAL, content: @Composable () -> Unit) {
+fun MizuTheme(font: AppFont = AppFont.PROMPT, content: @Composable () -> Unit) {
     val type = remember(font) { typography(font) }
     MaterialTheme(colorScheme = Scheme, shapes = Shape, typography = type, content = content)
 }

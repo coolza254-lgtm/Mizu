@@ -373,7 +373,7 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp))
                         .background(if (selected) MizuColors.Water else Color.White)
-                        .border(if (selected) 2.dp else 1.dp, MizuColors.Ink, RoundedCornerShape(20.dp))
+                        .border(if (selected) 2.dp else 0.dp, if (selected) MizuColors.WaterDeep else Color.Transparent, RoundedCornerShape(20.dp))
                         .bouncyClick(haptic = HapticKind.TICK) {
                             vm.updateSettings { it.copy(language = lang) }
                             haptics.success()
@@ -420,7 +420,7 @@ private fun FontSheet(current: AppFont, onPick: (AppFont) -> Unit, onDismiss: ()
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
                     .background(if (selected) MizuColors.Water else Color.White)
-                    .border(if (selected) 2.dp else 1.dp, MizuColors.Ink, RoundedCornerShape(18.dp))
+                    .border(if (selected) 2.dp else 0.dp, if (selected) MizuColors.WaterDeep else Color.Transparent, RoundedCornerShape(18.dp))
                     .bouncyClick(haptic = HapticKind.TICK) { onPick(f) }
                     .padding(horizontal = 18.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -441,7 +441,7 @@ private fun ProfileCard(s: MizuSettings) {
     GlassCard(background = Color.White) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(64.dp).clip(CircleShape).background(MizuColors.Foam).border(InkStroke, MizuColors.Ink, CircleShape),
+                Modifier.size(64.dp).clip(CircleShape).background(MizuColors.Foam),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(painterResource(R.drawable.mizu_mascot), contentDescription = null, modifier = Modifier.size(54.dp))

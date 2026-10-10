@@ -5,16 +5,18 @@ package com.example.mizu.ui
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,12 +30,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.EmojiEvents
-import androidx.compose.material.icons.rounded.LocalDrink
-import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.NotificationsOff
-import androidx.compose.material.icons.rounded.Opacity
 import androidx.compose.material.icons.rounded.Scale
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.WaterDrop
@@ -55,14 +51,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -73,10 +65,14 @@ import com.example.mizu.core.BottlePlanner
 import com.example.mizu.core.DrinkLog
 import com.example.mizu.core.DrinkSource
 import com.example.mizu.core.GoalCalculator
-import com.example.mizu.core.ReminderEngine
+import com.example.mizu.core.PaceAdvice
+import com.example.mizu.core.PaceAdvisor
+import com.example.mizu.core.PaceState
 import com.example.mizu.util.toLocale
+import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 @Composable
@@ -95,11 +91,12 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
     val consumed = todayLogs.sumOf { it.amountMl }
     val goal = s.goalMl
     val remaining = GoalCalculator.remainingMl(consumed, goal)
-    val reached = GoalCalculator.isGoalReached(consumed, goal)
-    val suggestion = ReminderEngine.contentAt(now, s, consumed)?.suggestedMl ?: 0
+    val advice = PaceAdvisor.advise(now, s, todayLogs)
     val streak = GoalCalculator.streakDays(logs, goal, today)
+    val bottle = currentBottle(bottles)
 
     var sheet by remember { mutableStateOf<AmountSheetTarget?>(null) }
+    var confirmFill by remember { mutableStateOf<Bottle?>(null) }
     val addedText = stringResource(R.string.toast_added)
     val deletedText = stringResource(R.string.toast_deleted)
     val undoText = stringResource(R.string.undo)
@@ -118,71 +115,52 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
         toast.show(String.format(deletedText, log.amountMl.grouped()), undoText) { vm.restoreLog(log) }
     }
 
+    val next = nextReminder
+    val reminderValue = next?.format(TIME_FORMAT) ?: "—"
+    val reminderSub = when {
+        next == null -> stringResource(R.string.reminder_off)
+        next.toLocalDate() == today -> stringResource(R.string.home_in, durationText(Duration.between(now, next).toMinutes()))
+        else -> stringResource(R.string.tomorrow_at, next.format(TIME_FORMAT))
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = bottomPadding),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = bottomPadding),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item { Greeting(now, locale) }
+        item { HeroTile(consumed, goal, remaining, advice) }
         item {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                HeroRing(GoalCalculator.progress(consumed, goal), consumed, goal, unit)
-            }
-        }
-        item { StatusLine(reached, suggestion, unit) }
-        item {
-            Column {
-                MonoKicker("mizu / timeline · ${today}")
-                GlassCard(Modifier.padding(top = 6.dp), padding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)) {
-                    DayTimeline(
-                        logs = todayLogs,
-                        start = s.reminderStart,
-                        end = s.reminderEnd,
-                        now = now,
-                        modifier = Modifier.fillMaxWidth().height(78.dp),
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                BottleTile(
+                    bottle = bottle,
+                    forecast = bottle?.let { BottlePlanner.forecast(it, now, s, logs) },
+                    onWeigh = onWeigh,
+                    onFill = { confirmFill = it },
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                )
+                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    InfoTile(stringResource(R.string.next_reminder), reminderValue, reminderSub, Modifier.weight(1f).fillMaxWidth())
+                    InfoTile(
+                        stringResource(R.string.stat_streak),
+                        streak.toString(),
+                        stringResource(R.string.home_drinks_today, todayLogs.size),
+                        Modifier.weight(1f).fillMaxWidth(),
+                        suffix = stringResource(R.string.unit_days),
                     )
                 }
             }
         }
-        item { MonoKicker("mizu / bottle") }
         item {
-            val bottle = bottles.filter { it.isActive }.maxByOrNull { it.waterUpdatedAt ?: LocalDateTime.MIN }
-            BottleCard(
-                bottle = bottle,
-                forecast = bottle?.let { BottlePlanner.forecast(it, now, s, logs) },
-                unit = unit,
-                onWeigh = onWeigh,
-                onFill = { b ->
-                    vm.fillBottle(b.id)
-                    sounds.fill()
-                    toast.show(String.format(filledText, (b.capacityMl ?: 0).grouped()))
-                },
-            )
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatTile(Icons.Rounded.Opacity, remaining.grouped(), stringResource(R.string.stat_remaining, unit), Modifier.weight(1f))
-                StatTile(Icons.Rounded.LocalDrink, todayLogs.size.toString(), stringResource(R.string.stat_drinks), Modifier.weight(1f))
-                StatTile(Icons.Rounded.LocalFireDepartment, streak.toString(), stringResource(R.string.stat_streak), Modifier.weight(1f))
-            }
-        }
-        item {
-            val reminderText = when {
-                nextReminder == null -> stringResource(R.string.reminder_off)
-                nextReminder!!.toLocalDate() == today -> nextReminder!!.format(TIME_FORMAT)
-                else -> stringResource(R.string.tomorrow_at, nextReminder!!.format(TIME_FORMAT))
-            }
-            GlassCard(padding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconBadge(if (nextReminder == null) Icons.Rounded.NotificationsOff else Icons.Rounded.NotificationsActive, size = 40.dp)
-                    Text(
-                        stringResource(R.string.next_reminder),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MizuColors.InkSoft,
-                        modifier = Modifier.weight(1f).padding(horizontal = 14.dp),
-                    )
-                    Text(reminderText, style = MaterialTheme.typography.titleLarge, color = MizuColors.Ink)
-                }
+            GlassCard(padding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp)) {
+                Text(stringResource(R.string.home_timeline, todayLogs.size), style = MaterialTheme.typography.labelMedium, color = MizuColors.InkFaint)
+                DayTimeline(
+                    logs = todayLogs,
+                    start = s.reminderStart,
+                    end = s.reminderEnd,
+                    now = now,
+                    modifier = Modifier.fillMaxWidth().height(72.dp),
+                )
             }
         }
         item {
@@ -190,8 +168,8 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
                 Pill(
                     "+ " + stringResource(R.string.manual_add),
                     Modifier.bouncyClick(haptic = HapticKind.TICK) { sheet = AmountSheetTarget.New },
-                    background = androidx.compose.ui.graphics.Color.White,
-                    color = MizuColors.Ink,
+                    background = Color.White,
+                    color = MizuColors.WaterDeep,
                 )
             }
             if (todayLogs.isNotEmpty()) {
@@ -211,6 +189,19 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
                 )
             }
         }
+    }
+
+    confirmFill?.let { b ->
+        FillConfirmSheet(
+            bottle = b,
+            onConfirm = {
+                vm.fillBottle(b.id)
+                sounds.fill()
+                toast.show(String.format(filledText, (b.capacityMl ?: 0).grouped()))
+                confirmFill = null
+            },
+            onDismiss = { confirmFill = null },
+        )
     }
 
     when (val target = sheet) {
@@ -234,6 +225,16 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
             onDismiss = { sheet = null },
         )
     }
+}
+
+/** The bottle the dashboard, the refill tile and the shortcut talk about: the active one weighed most recently. */
+internal fun currentBottle(bottles: List<Bottle>): Bottle? =
+    bottles.filter { it.isActive }.maxByOrNull { it.waterUpdatedAt ?: LocalDateTime.MIN }
+
+@Composable
+private fun durationText(minutes: Long): String {
+    val m = minutes.coerceAtLeast(0).toInt()
+    return if (m >= 60) stringResource(R.string.duration_hm, m / 60, m % 60) else stringResource(R.string.duration_m, m)
 }
 
 private sealed interface AmountSheetTarget {
@@ -264,8 +265,7 @@ private fun Greeting(now: LocalDateTime, locale: java.util.Locale) {
             Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .background(MizuColors.Foam)
-                .border(InkStroke, MizuColors.Ink, CircleShape)
+                .background(Color.White)
                 .bouncyClick(haptic = HapticKind.TICK) {
                     scope.launch {
                         haptics.tick()
@@ -284,155 +284,211 @@ private fun Greeting(now: LocalDateTime, locale: java.util.Locale) {
     }
 }
 
+/** Today's total as a ring + number, with the pace advice underneath. */
 @Composable
-private fun StatusLine(reached: Boolean, suggestion: Int, unit: String) {
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        if (reached) {
-            Pill(stringResource(R.string.goal_reached), icon = Icons.Rounded.EmojiEvents)
-        } else {
-            val template = stringResource(R.string.should_drink_more, -1)
-            val amount = "${suggestion.grouped()} $unit"
-            val parts = template.split("-1 ml", "-1")
-            Text(
-                buildAnnotatedString {
-                    append(parts.getOrElse(0) { "" })
-                    withStyle(
-                        SpanStyle(
-                            color = MizuColors.Ink,
-                            background = MizuColors.Highlight,
-                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
-                            fontWeight = FontWeight.SemiBold,
-                        ),
-                    ) { append(" $amount ") }
-                    append(parts.getOrElse(1) { "" })
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                color = MizuColors.InkSoft,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatTile(icon: ImageVector, value: String, label: String, modifier: Modifier = Modifier) {
-    GlassCard(modifier, padding = PaddingValues(horizontal = 14.dp, vertical = 16.dp)) {
-        Icon(icon, null, tint = MizuColors.WaterDeep, modifier = Modifier.size(20.dp))
-        Column {
-            Text(value, style = MaterialTheme.typography.titleLarge, color = MizuColors.Ink, maxLines = 1)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MizuColors.InkSoft, maxLines = 1)
-        }
-    }
-}
-
-@Composable
-private fun QuickAddTile(ml: Int, unit: String, iconSize: Dp, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(26.dp)
-    Column(
-        modifier
-            .heightIn(min = 120.dp)
-            .clip(shape)
-            .background(MizuColors.Foam)
-            .border(InkStroke, MizuColors.Ink, shape)
-            .bouncyClick(haptic = HapticKind.SUCCESS, pressedScale = 0.92f, onClick = onClick)
-            .padding(vertical = 18.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Box(Modifier.height(36.dp), contentAlignment = Alignment.BottomCenter) {
-            Icon(Icons.Rounded.WaterDrop, null, tint = MizuColors.WaterDeep, modifier = Modifier.size(iconSize))
-        }
-        Spacer(Modifier.height(10.dp))
-        Text("+${ml.grouped()}", style = MaterialTheme.typography.titleLarge, color = MizuColors.Ink)
-        Text(unit, style = MaterialTheme.typography.labelSmall, color = MizuColors.InkSoft)
-    }
-}
-
-@Composable
-private fun ActionCard(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    modifier: Modifier = Modifier,
-    emphasizeSubtitle: Boolean = false,
-    onClick: (() -> Unit)?,
-) {
-    GlassCard(modifier, onClick = onClick, padding = PaddingValues(16.dp)) {
-        IconBadge(icon, size = 40.dp)
-        Column {
-            Text(title, style = MaterialTheme.typography.labelMedium, color = MizuColors.InkSoft, maxLines = 1)
-            Text(
-                subtitle,
-                style = if (emphasizeSubtitle) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
-                color = MizuColors.Ink,
-                maxLines = 1,
-            )
-        }
-    }
-}
-
-/** Water left in the bottle, when it will run dry at the pace the goal needs, and quick weigh / fill. */
-@Composable
-private fun BottleCard(bottle: Bottle?, forecast: BottleForecast?, unit: String, onWeigh: () -> Unit, onFill: (Bottle) -> Unit) {
-    GlassCard {
+private fun HeroTile(consumed: Int, goal: Int, remaining: Int, advice: PaceAdvice) {
+    val progress = GoalCalculator.progress(consumed, goal)
+    val animated by animateFloatAsState(progress, tween(700), label = "hero")
+    GlassCard(padding = PaddingValues(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            BottleGauge(
-                previousWater = bottle?.currentWaterG,
-                newWater = null,
-                capacityMl = bottle?.capacityMl,
-                modifier = Modifier.size(width = 50.dp, height = 104.dp),
-            )
-            Column(Modifier.weight(1f).padding(start = 18.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Box(contentAlignment = Alignment.Center) {
+                MiniRing(animated, size = 104.dp, stroke = 11.dp)
+                Text("${(progress * 100).roundToInt()}%", style = MaterialTheme.typography.titleLarge, color = MizuColors.Ink)
+            }
+            Column(Modifier.weight(1f).padding(start = 18.dp)) {
+                Text(stringResource(R.string.home_drunk_today), style = MaterialTheme.typography.labelMedium, color = MizuColors.InkFaint)
+                Text(consumed.grouped(), style = MaterialTheme.typography.displayMedium, color = MizuColors.Ink, maxLines = 1)
                 Text(
-                    stringResource(R.string.bottle_card_label, bottle?.name ?: "—"),
-                    style = MaterialTheme.typography.labelMedium,
+                    stringResource(R.string.home_of_goal, goal.grouped(), remaining.grouped()),
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MizuColors.InkSoft,
-                    maxLines = 1,
                 )
-                if (forecast == null) {
-                    Text(stringResource(R.string.bottle_status_not_weighed), style = MaterialTheme.typography.bodyLarge, color = MizuColors.Ink)
-                } else {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(forecast.waterMl.grouped(), style = MaterialTheme.typography.headlineSmall, color = MizuColors.Ink)
-                        Text(
-                            " " + (bottle?.capacityMl?.let { "/ ${it.grouped()} " } ?: "") + unit,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MizuColors.InkSoft,
-                            modifier = Modifier.padding(bottom = 3.dp),
-                        )
-                    }
-                    val status = when {
-                        forecast.waterMl <= 0 -> stringResource(R.string.bottle_status_empty)
-                        forecast.coversGoal -> stringResource(R.string.bottle_status_covers_goal)
-                        forecast.emptyAt != null -> stringResource(R.string.bottle_status_empty_at, forecast.emptyAt!!.format(TIME_FORMAT))
-                        else -> stringResource(R.string.bottle_status_lasts_today)
-                    }
-                    Text(
-                        status,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (forecast.waterMl <= 0) MizuColors.Danger else MizuColors.WaterDeep,
-                    )
-                    val extra = buildList {
-                        if (forecast.refillsNeeded > 0) add(stringResource(R.string.bottle_refills_needed, forecast.refillsNeeded))
-                        bottle?.waterUpdatedAt?.let { add(stringResource(R.string.bottle_last_weighed, it.format(TIME_FORMAT))) }
-                    }
-                    if (extra.isNotEmpty()) {
-                        Text(extra.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = MizuColors.InkFaint)
-                    }
-                }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SoftButton(stringResource(R.string.weigh_short), onWeigh, Modifier.weight(1f))
-            PrimaryButton(
+        AdviceBlock(advice)
+    }
+}
+
+/** Plain-language pace advice: how far behind / ahead, how much to drink by when, or to slow down. */
+@Composable
+private fun AdviceBlock(a: PaceAdvice) {
+    val by = a.byTime?.format(TIME_FORMAT) ?: "—"
+    val title: String
+    val detail: String
+    when (a.state) {
+        PaceState.BEFORE_START -> {
+            title = stringResource(R.string.advice_before_start_t)
+            detail = stringResource(R.string.advice_before_start_d, by, a.drinkNowMl.grouped())
+        }
+        PaceState.BEHIND -> {
+            title = stringResource(R.string.advice_behind_t, (-a.gapMl).grouped())
+            detail = stringResource(R.string.advice_behind_d, a.drinkNowMl.grouped(), by, a.ratePerHourMl.grouped())
+        }
+        PaceState.BEHIND_FAR -> {
+            title = stringResource(R.string.advice_behind_far_t, (-a.gapMl).grouped())
+            detail = stringResource(R.string.advice_behind_far_d, a.drinkNowMl.grouped(), a.ratePerHourMl.grouped())
+        }
+        PaceState.ON_TRACK -> {
+            title = stringResource(R.string.advice_on_track_t)
+            detail = if (a.byTime == null || a.drinkNowMl <= 0) {
+                stringResource(R.string.advice_reached_d)
+            } else {
+                stringResource(R.string.advice_on_track_d, a.drinkNowMl.grouped(), by, a.remainingMl.grouped())
+            }
+        }
+        PaceState.AHEAD -> {
+            title = stringResource(R.string.advice_ahead_t, a.gapMl.grouped())
+            detail = stringResource(R.string.advice_ahead_d, by, a.remainingMl.grouped())
+        }
+        PaceState.TOO_FAST -> {
+            title = stringResource(R.string.advice_too_fast_t)
+            detail = stringResource(R.string.advice_too_fast_d, a.lastHourMl.grouped(), by)
+        }
+        PaceState.REACHED -> {
+            title = stringResource(R.string.goal_reached)
+            detail = if (a.overMl > 0) stringResource(R.string.advice_reached_over_d, a.overMl.grouped()) else stringResource(R.string.advice_reached_d)
+        }
+        PaceState.OVER_GOAL -> {
+            title = stringResource(R.string.advice_over_t)
+            detail = stringResource(R.string.advice_over_d, a.overMl.grouped())
+        }
+        PaceState.DAY_OVER_SHORT -> {
+            title = stringResource(R.string.advice_day_over_t)
+            detail = stringResource(R.string.advice_day_over_d, a.remainingMl.grouped(), a.drinkNowMl.grouped())
+        }
+    }
+    val (background, accent) = when (a.state) {
+        PaceState.BEHIND_FAR, PaceState.TOO_FAST, PaceState.OVER_GOAL -> MizuColors.WarnSoft to MizuColors.Warn
+        PaceState.AHEAD, PaceState.REACHED -> MizuColors.GoodSoft to MizuColors.Good
+        else -> MizuColors.Foam to MizuColors.WaterDeep
+    }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(background).padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium, color = accent)
+        Text(detail, style = MaterialTheme.typography.bodyMedium, color = MizuColors.InkSoft)
+    }
+}
+
+/** The bottle in use: cartoon cup with its water level, amount, when it runs dry, weigh / refill. */
+@Composable
+private fun BottleTile(bottle: Bottle?, forecast: BottleForecast?, onWeigh: () -> Unit, onFill: (Bottle) -> Unit, modifier: Modifier = Modifier) {
+    GlassCard(modifier, padding = PaddingValues(16.dp)) {
+        Text(
+            stringResource(R.string.home_bottle, bottle?.name ?: "—"),
+            style = MaterialTheme.typography.labelMedium,
+            color = MizuColors.InkFaint,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        BottleGauge(
+            previousWater = bottle?.currentWaterG,
+            newWater = null,
+            capacityMl = bottle?.capacityMl,
+            modifier = Modifier.align(Alignment.CenterHorizontally).size(width = 56.dp, height = 112.dp),
+        )
+        Column(Modifier.fillMaxWidth().weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (forecast == null) {
+                Text(
+                    stringResource(R.string.bottle_status_not_weighed),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MizuColors.InkSoft,
+                    textAlign = TextAlign.Center,
+                )
+            } else {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(forecast.waterMl.grouped(), style = MaterialTheme.typography.headlineSmall, color = MizuColors.Ink)
+                    bottle?.capacityMl?.let {
+                        Text(" / ${it.grouped()}", style = MaterialTheme.typography.bodyMedium, color = MizuColors.InkFaint, modifier = Modifier.padding(bottom = 3.dp))
+                    }
+                }
+                val emptyAt = forecast.emptyAt
+                val status = when {
+                    forecast.waterMl <= 0 -> stringResource(R.string.bottle_status_empty)
+                    forecast.coversGoal -> stringResource(R.string.bottle_status_covers_goal)
+                    emptyAt != null -> stringResource(R.string.home_empty_at, emptyAt.format(TIME_FORMAT))
+                    else -> stringResource(R.string.bottle_status_lasts_today)
+                }
+                Text(
+                    status,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (forecast.waterMl <= 0) MizuColors.Danger else MizuColors.InkSoft,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            ChipButton(stringResource(R.string.weigh_short), MizuColors.Ink, Color.White, Modifier.weight(1f), onClick = onWeigh)
+            ChipButton(
                 stringResource(R.string.fill_full),
-                onClick = { if (bottle != null) onFill(bottle) },
-                modifier = Modifier.weight(1f),
+                MizuColors.Foam,
+                MizuColors.WaterDeep,
+                Modifier.weight(1f),
                 enabled = bottle?.capacityMl != null,
-                haptic = HapticKind.SUCCESS,
+                onClick = { if (bottle != null) onFill(bottle) },
             )
         }
+    }
+}
+
+@Composable
+private fun ChipButton(text: String, background: Color, color: Color, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    Box(
+        modifier
+            .heightIn(min = 40.dp)
+            .clip(CircleShape)
+            .background(if (enabled) background else MizuColors.Line)
+            .bouncyClick(enabled = enabled, haptic = HapticKind.TICK, onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = 9.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, style = MaterialTheme.typography.labelMedium, color = if (enabled) color else MizuColors.InkFaint, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun InfoTile(label: String, value: String, sub: String, modifier: Modifier = Modifier, suffix: String? = null) {
+    GlassCard(modifier, padding = PaddingValues(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MizuColors.InkFaint, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(value, style = MaterialTheme.typography.headlineSmall, color = MizuColors.Ink, maxLines = 1)
+                if (suffix != null) {
+                    Text(" $suffix", style = MaterialTheme.typography.bodyMedium, color = MizuColors.InkFaint, modifier = Modifier.padding(bottom = 3.dp))
+                }
+            }
+            Text(sub, style = MaterialTheme.typography.labelMedium, color = MizuColors.InkSoft, maxLines = 2)
+        }
+    }
+}
+
+/** Asks before refilling: the button sits where a stray tap lands easily. */
+@Composable
+internal fun FillConfirmSheet(bottle: Bottle, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    MizuSheet(onDismiss) {
+        BottleGauge(
+            previousWater = bottle.capacityMl,
+            newWater = null,
+            capacityMl = bottle.capacityMl,
+            modifier = Modifier.align(Alignment.CenterHorizontally).size(width = 54.dp, height = 108.dp),
+        )
+        Text(
+            stringResource(R.string.fill_confirm_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = MizuColors.Ink,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            stringResource(R.string.fill_confirm_body, bottle.name, (bottle.capacityMl ?: 0).grouped()),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MizuColors.InkSoft,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        PrimaryButton(stringResource(R.string.fill_confirm_ok), onConfirm, Modifier.fillMaxWidth(), haptic = HapticKind.SUCCESS)
+        SoftButton(stringResource(R.string.cancel), onDismiss, Modifier.fillMaxWidth())
     }
 }
 
@@ -502,7 +558,6 @@ fun TimelineRow(log: DrinkLog, isFirst: Boolean, isLast: Boolean, onClick: (() -
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .background(Color.White)
-            .border(1.dp, MizuColors.Ink, RoundedCornerShape(18.dp))
             .then(if (onClick != null) Modifier.bouncyClick(pressedScale = 0.98f, haptic = HapticKind.TICK, onClick = onClick) else Modifier)
             .heightIn(min = 68.dp)
             .padding(horizontal = 4.dp),
@@ -521,7 +576,7 @@ fun TimelineRow(log: DrinkLog, isFirst: Boolean, isLast: Boolean, onClick: (() -
                 Box(Modifier.width(2.dp).weight(1f).background(if (isFirst) Color.Transparent else MizuColors.Line))
                 Box(Modifier.width(2.dp).weight(1f).background(if (isLast) Color.Transparent else MizuColors.Line))
             }
-            Box(Modifier.size(12.dp).clip(CircleShape).background(MizuColors.Water).border(1.dp, MizuColors.Ink, CircleShape))
+            Box(Modifier.size(12.dp).clip(CircleShape).background(MizuColors.Water))
             Box(Modifier.size(5.dp).clip(CircleShape).background(Color.White))
         }
         Column(Modifier.weight(1f).padding(start = 10.dp)) {
