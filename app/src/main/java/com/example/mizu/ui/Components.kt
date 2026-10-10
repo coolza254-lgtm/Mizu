@@ -2,6 +2,9 @@
 
 package com.example.mizu.ui
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -416,6 +419,10 @@ fun String.pushDigit(d: Int, maxDigits: Int): String =
 
 @Composable
 fun MizuSheet(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    // The sheet lives in its own window, which re-provides the Activity context and so the device language.
+    // Carry the in-app language (see localizedWrapper) across.
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -425,11 +432,13 @@ fun MizuSheet(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit
             Box(Modifier.padding(top = 12.dp, bottom = 4.dp).size(width = 40.dp, height = 4.dp).clip(CircleShape).background(MizuColors.Line))
         },
     ) {
-        Column(
-            Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp).padding(bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            content = content,
-        )
+        CompositionLocalProvider(LocalContext provides context, LocalConfiguration provides configuration) {
+            Column(
+                Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp).padding(bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                content = content,
+            )
+        }
     }
 }
 

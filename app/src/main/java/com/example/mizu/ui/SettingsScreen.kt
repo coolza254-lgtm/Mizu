@@ -596,6 +596,9 @@ private fun BottleSheet(
 @Composable
 private fun TimeDialog(initial: LocalTime, onConfirm: (LocalTime) -> Unit, onDismiss: () -> Unit) {
     val state = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = true)
+    // Read outside: the dialog's own window would answer in the device language, not the in-app one.
+    val saveText = stringResource(R.string.save)
+    val cancelText = stringResource(R.string.cancel)
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = MaterialTheme.shapes.large,
@@ -612,8 +615,8 @@ private fun TimeDialog(initial: LocalTime, onConfirm: (LocalTime) -> Unit, onDis
                 ),
             )
         },
-        confirmButton = { PrimaryButton(stringResource(R.string.save), { onConfirm(LocalTime.of(state.hour, state.minute)) }, haptic = HapticKind.SUCCESS) },
-        dismissButton = { SoftButton(stringResource(R.string.cancel), onDismiss, haptic = HapticKind.TICK) },
+        confirmButton = { PrimaryButton(saveText, { onConfirm(LocalTime.of(state.hour, state.minute)) }, haptic = HapticKind.SUCCESS) },
+        dismissButton = { SoftButton(cancelText, onDismiss, haptic = HapticKind.TICK) },
     )
 }
 

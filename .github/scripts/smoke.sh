@@ -6,6 +6,10 @@ PKG=com.example.mizu
 APK=$(ls app-apk/*.apk | head -1)
 mkdir -p shots
 adb install -r "$APK"
+# Thai time, so the dashboard advice in the screenshots matches a real day.
+adb shell cmd alarm set-timezone Asia/Bangkok || adb shell setprop persist.sys.timezone Asia/Bangkok || true
+SIZE=$(adb shell wm size | grep -oE '[0-9]+x[0-9]+' | tail -1)
+W=${SIZE%x*}; H=${SIZE#*x}
 adb shell pm grant $PKG android.permission.POST_NOTIFICATIONS || true
 adb logcat -c
 
@@ -16,14 +20,14 @@ for screen in home history settings weigh; do
 done
 
 # Lower half of the dashboard.
-adb shell am start -S -W -n $PKG/.MainActivity --es mizu_screen home
+adb shell am start -S -W -n $PKG/.MainActivity --es mizu_screen home --ez mizu_demo true
 sleep 6
-adb shell input swipe 540 1700 540 500 600
+adb shell input swipe $((W / 2)) $((H * 3 / 4)) $((W / 2)) $((H / 5)) 700
 sleep 2
 adb exec-out screencap -p > "shots/home2.png"
 
 # Refill confirmation (launcher shortcut path; demo data has a bottle with a known capacity).
-adb shell am start -S -W -n $PKG/.MainActivity --es mizu_action fill
+adb shell am start -S -W -n $PKG/.MainActivity --es mizu_action fill --ez mizu_demo true
 sleep 6
 adb exec-out screencap -p > "shots/fill_confirm.png"
 adb shell input keyevent KEYCODE_BACK
