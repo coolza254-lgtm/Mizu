@@ -36,6 +36,29 @@ object ReminderEngine {
     const val TIGHT_RATE_ML_PER_H = 350
 
     /**
+     * ADAPTIVE mode stays quiet while drinking keeps up with the even pace, and starts reminding once this far
+     * behind it (a few ml behind is not worth a reminder).
+     */
+    const val BEHIND_THRESHOLD_ML = 50
+
+    /** When the even pace will be [BEHIND_THRESHOLD_ML] ahead of [consumedMl] on [date] (window start at the earliest). */
+    fun behindAt(date: LocalDate, settings: MizuSettings, consumedMl: Int): LocalDateTime {
+        val start = date.atTime(settings.reminderStart)
+        val end = date.atTime(settings.reminderEnd)
+        val windowMin = Duration.between(start, end).toMinutes()
+        if (settings.goalMl <= 0 || windowMin <= 0) return end
+        val minutes = kotlin.math.ceil(windowMin * (consumedMl + BEHIND_THRESHOLD_ML).toDouble() / settings.goalMl).toLong()
+        return start.plusMinutes(minutes)
+    }
+
+    /**
+     * Re-check when a reminder fires: FIXED always notifies; ADAPTIVE only when behind the pace (or for the
+     * end-of-day push), so a drink logged since scheduling silences it.
+     */
+    fun shouldNotify(content: ReminderContent, settings: MizuSettings): Boolean =
+        settings.reminderMode == ReminderMode.FIXED || content.urgent || content.deficitMl >= BEHIND_THRESHOLD_ML
+
+    /**
      * FIXED: always the base interval. ADAPTIVE: the base interval when on track, shrinking linearly with the
      * deficit down to the minimum interval once the deficit reaches the escalation amount.
      */
@@ -123,7 +146,11 @@ object ReminderEngine {
      * @param lastReminderAt when the previous reminder fired (interval counts from the latest of this, the last log and window start)
      * @param snoozeUntil if later than [now], the next reminder is exactly this time (a snooze never counts as drinking)
      * @return null when reminders are off or the window is invalid. When the goal is reached or the window is over,
-     *         the plan is tomorrow's first reminder (window start + base interval).
+     *         the plan is tomorrow's first reminder.
+     *
+     * ADAPTIVE: while drinking keeps up with the even pace there is no reminder until the moment it falls behind
+     * ([behindAt]); once behind, reminders come more often the bigger the deficit, and the level rises to strong
+     * and then to the full-screen alarm (see [level]). FIXED: every base interval.
      */
     fun nextReminder(
         now: LocalDateTime,
@@ -146,6 +173,17 @@ object ReminderEngine {
         val lastDrink = todayLogs.maxOfOrNull { it.timestamp }
         val current = contentAt(effectiveNow, settings, consumed, lastDrink) ?: return tomorrowPlan(date, settings)
 
+        val snoozing = snoozeUntil != null && snoozeUntil.isAfter(now)
+        if (settings.reminderMode == ReminderMode.ADAPTIVE && !current.urgent && current.deficitMl < BEHIND_THRESHOLD_ML) {
+            // Keeping up: stay quiet until the pace overtakes what was drunk.
+            var at = behindAt(date, settings, consumed)
+            if (snoozing && snoozeUntil!!.isAfter(at)) at = snoozeUntil
+            if (at.isBefore(effectiveNow)) at = effectiveNow
+            if (!at.isBefore(end)) return tomorrowPlan(date, settings)
+            val content = contentAt(at, settings, consumed, lastDrink) ?: return tomorrowPlan(date, settings)
+            return ReminderPlan(at, content)
+        }
+
         val reference = listOfNotNull(start, lastReminderAt, todayLogs.maxOfOrNull { it.timestamp })
             .filter { !it.isBefore(start) }
             .reduce { a, b -> if (b.isAfter(a)) b else a }
@@ -156,7 +194,7 @@ object ReminderEngine {
         }
 
         var at = reference.plusMinutes(interval.toLong())
-        if (snoozeUntil != null && snoozeUntil.isAfter(now)) at = snoozeUntil
+        if (snoozing) at = snoozeUntil!!
         if (at.isBefore(effectiveNow)) at = effectiveNow
         if (!at.isBefore(end)) return tomorrowPlan(date, settings)
 
@@ -168,7 +206,11 @@ object ReminderEngine {
         val next = today.plusDays(1)
         val start = next.atTime(settings.reminderStart)
         val end = next.atTime(settings.reminderEnd)
-        var at = start.plusMinutes(settings.baseIntervalMin.coerceAtLeast(MIN_INTERVAL_MIN).toLong())
+        var at = if (settings.reminderMode == ReminderMode.ADAPTIVE) {
+            behindAt(next, settings, 0)
+        } else {
+            start.plusMinutes(settings.baseIntervalMin.coerceAtLeast(MIN_INTERVAL_MIN).toLong())
+        }
         if (at.isAfter(end)) at = end
         val content = contentAt(at, settings, 0) ?: return null
         return ReminderPlan(at, content)

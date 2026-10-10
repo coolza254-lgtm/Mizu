@@ -167,7 +167,7 @@
     <string name="reminder_rhythm">通知の間隔</string>
     <string name="mode_adaptive">不足に応じて</string>
     <string name="mode_fixed">一定間隔</string>
-    <string name="mode_adaptive_hint">遅れるほど通知の間隔が短くなります。</string>
+    <string name="mode_adaptive_hint">ペース通りなら通知なし。遅れ始めたらすぐ通知し、不足が大きいほど頻繁・強めに、最後は全画面アラーム</string>
     <string name="mode_fixed_hint">一日中同じ間隔で通知します。</string>
     <string name="base_interval">通常の間隔</string>
     <string name="fixed_interval">通知の間隔</string>
@@ -226,4 +226,9 @@
     <string name="home_drinks_today">今日 %1$d 回</string>
     <string name="home_timeline">今日のタイムライン · %1$d 回</string>
     <string name="fill_short">満タン</string>
+    <string name="chart_actual">実際</string>
+    <string name="chart_pace">ペース</string>
+    <string name="chart_goal">目標 %1$s ml</string>
+    <string name="home_goal_of">目標 %1$s ml</string>
+    <string name="home_left">残り %1$s ml</string>
 </resources>

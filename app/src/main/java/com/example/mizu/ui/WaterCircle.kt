@@ -13,6 +13,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -207,56 +208,121 @@ fun MiniRing(progress: Float, modifier: Modifier = Modifier, size: Dp = 40.dp, s
 }
 
 /**
- * Today as a ruler (reminder window start to end): hour ticks, a droplet for every drink sized by amount,
- * and a "now" pin. Inspired by editorial timeline graphics.
+ * Today as a cumulative chart over the reminder window: the dashed line is the even pace to the goal, the blue
+ * steps are what was actually drunk, and at "now" a short bar shows the gap (green ahead, orange behind).
  */
 @Composable
-fun DayTimeline(
+fun PaceChart(
     logs: List<com.example.mizu.core.DrinkLog>,
     start: java.time.LocalTime,
     end: java.time.LocalTime,
     now: java.time.LocalDateTime,
+    goalMl: Int,
+    goalLabel: String,
     modifier: Modifier = Modifier,
 ) {
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
     val labelStyle = MaterialTheme.typography.labelSmall.copy(color = MizuColors.InkFaint)
     val startMin = start.toSecondOfDay() / 60f
     val endMin = end.toSecondOfDay() / 60f
+    val today = now.toLocalDate()
+    val drinks = logs.filter { it.timestamp.toLocalDate() == today }.sortedBy { it.timestamp }
     Canvas(modifier) {
-        if (endMin <= startMin) return@Canvas
-        val pad = 14.dp.toPx()
-        val lineY = size.height * 0.62f
-        val w = size.width - pad * 2
-        fun xFor(minute: Float) = pad + w * ((minute - startMin) / (endMin - startMin)).coerceIn(0f, 1f)
+        if (endMin <= startMin || goalMl <= 0) return@Canvas
+        val left = 6.dp.toPx()
+        val right = size.width - 6.dp.toPx()
+        val top = 18.dp.toPx()
+        val bottom = size.height - 20.dp.toPx()
+        val total = drinks.sumOf { it.amountMl }
+        val maxY = maxOf(goalMl, total) * 1.06f
+        fun x(minute: Float) = left + (right - left) * ((minute - startMin) / (endMin - startMin)).coerceIn(0f, 1f)
+        fun y(ml: Float) = bottom - (bottom - top) * (ml / maxY)
+        fun minuteOf(t: java.time.LocalDateTime) = (t.toLocalTime().toSecondOfDay() / 60f).coerceIn(startMin, endMin)
+        val nowMin = minuteOf(now)
 
-        drawLine(MizuColors.Line, Offset(pad, lineY), Offset(pad + w, lineY), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+        // goal line + label, baseline, hour labels
+        val goalY = y(goalMl.toFloat())
+        drawLine(MizuColors.Line, Offset(left, goalY), Offset(right, goalY), strokeWidth = 1.dp.toPx())
+        val goalText = measurer.measure(goalLabel, labelStyle)
+        drawText(goalText, topLeft = Offset(left, goalY - goalText.size.height - 2.dp.toPx()))
+        drawLine(MizuColors.Line, Offset(left, bottom), Offset(right, bottom), strokeWidth = 1.5.dp.toPx(), cap = StrokeCap.Round)
         var h = kotlin.math.ceil(startMin / 60f).toInt()
         while (h * 60 <= endMin) {
-            val x = xFor(h * 60f)
-            val major = h % 4 == 0
-            drawLine(if (major) MizuColors.InkFaint else MizuColors.Line, Offset(x, lineY - 3.dp.toPx()), Offset(x, lineY + (if (major) 6 else 3).dp.toPx()), strokeWidth = 1.2.dp.toPx(), cap = StrokeCap.Round)
-            if (major) {
+            if (h % 2 == 0) {
+                val hx = x(h * 60f)
+                drawLine(MizuColors.Line, Offset(hx, bottom), Offset(hx, bottom + 4.dp.toPx()), strokeWidth = 1.dp.toPx())
                 val label = measurer.measure("%02d".format(h), labelStyle)
-                drawText(label, topLeft = Offset(x - label.size.width / 2f, lineY + 11.dp.toPx()))
+                drawText(label, topLeft = Offset((hx - label.size.width / 2f).coerceIn(0f, size.width - label.size.width), bottom + 5.dp.toPx()))
             }
             h++
         }
-        // drinks
-        logs.filter { it.timestamp.toLocalDate() == now.toLocalDate() }.forEach { log ->
-            val minute = log.timestamp.toLocalTime().toSecondOfDay() / 60f
-            val x = xFor(minute)
-            val r = (4f + (log.amountMl.coerceIn(100, 600) - 100) / 500f * 5f).dp.toPx()
-            val cy = lineY - r - 6.dp.toPx()
-            drawCircle(MizuColors.Water, r, Offset(x, cy))
-            drawCircle(MizuColors.WaterDeep, r, Offset(x, cy), style = Stroke(1.dp.toPx()))
+
+        // even pace to the goal
+        drawLine(
+            MizuColors.InkFaint,
+            Offset(x(startMin), y(0f)),
+            Offset(x(endMin), goalY),
+            strokeWidth = 1.5.dp.toPx(),
+            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())),
+        )
+
+        // what was actually drunk, as steps up to now
+        val steps = ArrayList<Offset>()
+        var acc = 0f
+        steps += Offset(x(startMin), y(0f))
+        drinks.forEach { d ->
+            val dx = x(minuteOf(d.timestamp))
+            steps += Offset(dx, y(acc))
+            acc += d.amountMl
+            steps += Offset(dx, y(acc))
         }
-        // now pin
-        val nowMin = now.toLocalTime().toSecondOfDay() / 60f
-        if (nowMin in startMin..endMin) {
-            val x = xFor(nowMin)
-            drawLine(MizuColors.Warn, Offset(x, 4.dp.toPx()), Offset(x, lineY), strokeWidth = 1.5.dp.toPx(),
-                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
-            drawCircle(MizuColors.Warn, 3.5.dp.toPx(), Offset(x, 4.dp.toPx()))
+        steps += Offset(x(nowMin), y(acc))
+        val line = Path().apply {
+            moveTo(steps[0].x, steps[0].y)
+            steps.drop(1).forEach { lineTo(it.x, it.y) }
         }
+        val area = Path().apply {
+            moveTo(steps[0].x, steps[0].y)
+            steps.drop(1).forEach { lineTo(it.x, it.y) }
+            lineTo(x(nowMin), y(0f))
+            close()
+        }
+        drawPath(area, MizuColors.Water.copy(alpha = 0.35f))
+        drawPath(line, MizuColors.WaterDeep, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+
+        // now: actual vs expected
+        val nowLocal = now.toLocalTime().toSecondOfDay() / 60f
+        if (nowLocal in startMin..endMin) {
+            val expected = goalMl * (nowMin - startMin) / (endMin - startMin)
+            val nx = x(nowMin)
+            val gapColor = if (total >= expected) MizuColors.Good else MizuColors.Warn
+            drawLine(gapColor, Offset(nx, y(total.toFloat())), Offset(nx, y(expected)), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
+            drawCircle(Color.White, 4.dp.toPx(), Offset(nx, y(expected)))
+            drawCircle(MizuColors.InkFaint, 4.dp.toPx(), Offset(nx, y(expected)), style = Stroke(1.5.dp.toPx()))
+            drawCircle(Color.White, 6.dp.toPx(), Offset(nx, y(total.toFloat())))
+            drawCircle(MizuColors.WaterDeep, 4.5.dp.toPx(), Offset(nx, y(total.toFloat())))
+        }
+    }
+}
+
+/** Legend for [PaceChart]: a blue swatch for drunk, a dashed line for the pace. */
+@Composable
+fun PaceLegend(actual: String, pace: String, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Canvas(Modifier.size(width = 14.dp, height = 10.dp)) {
+            drawRoundRect(MizuColors.Water.copy(alpha = 0.5f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()))
+            drawLine(MizuColors.WaterDeep, Offset(0f, 1.dp.toPx()), Offset(size.width, 1.dp.toPx()), strokeWidth = 2.dp.toPx())
+        }
+        Text(actual, style = MaterialTheme.typography.labelSmall, color = MizuColors.InkSoft, modifier = Modifier.padding(start = 5.dp, end = 12.dp))
+        Canvas(Modifier.size(width = 16.dp, height = 10.dp)) {
+            drawLine(
+                MizuColors.InkFaint,
+                Offset(0f, size.height / 2),
+                Offset(size.width, size.height / 2),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())),
+            )
+        }
+        Text(pace, style = MaterialTheme.typography.labelSmall, color = MizuColors.InkSoft, modifier = Modifier.padding(start = 5.dp))
     }
 }

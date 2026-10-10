@@ -167,7 +167,7 @@
     <string name="reminder_rhythm">จังหวะการเตือน</string>
     <string name="mode_adaptive">ตามที่ขาด</string>
     <string name="mode_fixed">เวลาเท่ากัน</string>
-    <string name="mode_adaptive_hint">ยิ่งดื่มช้ากว่าเป้า ยิ่งเตือนถี่ขึ้นเรื่อย ๆ</string>
+    <string name="mode_adaptive_hint">ดื่มทันเป้าจะไม่เตือน พอเริ่มช้ากว่าเป้าจะเตือนทันที ยิ่งขาดมากยิ่งเตือนถี่และแรงขึ้น จนถึงขั้นปลุกเต็มจอ</string>
     <string name="mode_fixed_hint">เตือนทุกช่วงเวลาเท่ากันตลอดวัน</string>
     <string name="base_interval">ปกติเตือนทุก</string>
     <string name="fixed_interval">เตือนทุก</string>
@@ -226,4 +226,9 @@
     <string name="home_drinks_today">วันนี้ดื่ม %1$d ครั้ง</string>
     <string name="home_timeline">ไทม์ไลน์วันนี้ · %1$d ครั้ง</string>
     <string name="fill_short">เติม</string>
+    <string name="chart_actual">ดื่มจริง</string>
+    <string name="chart_pace">ตามแผน</string>
+    <string name="chart_goal">เป้า %1$s ml</string>
+    <string name="home_goal_of">จากเป้า %1$s ml</string>
+    <string name="home_left">เหลืออีก %1$s ml</string>
 </resources>

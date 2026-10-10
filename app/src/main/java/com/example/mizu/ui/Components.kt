@@ -60,6 +60,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -70,6 +71,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import com.example.mizu.R
 import java.util.Locale
 import kotlinx.coroutines.delay
@@ -601,4 +603,41 @@ fun BoxScope.ToastHost(state: ToastState, modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+/**
+ * One line of text that shrinks (down to [minScale]) instead of wrapping or clipping when it does not fit,
+ * so big numbers and labels stay on one line on narrow screens and with large system font sizes.
+ */
+@Composable
+fun FitText(
+    text: String,
+    style: androidx.compose.ui.text.TextStyle,
+    color: Color,
+    modifier: Modifier = Modifier,
+    minScale: Float = 0.55f,
+    textAlign: TextAlign? = null,
+) {
+    var scale by remember(text, style) { mutableStateOf(1f) }
+    var ready by remember(text, style) { mutableStateOf(false) }
+    val scaled = style.copy(
+        fontSize = if (style.fontSize.isSpecified) style.fontSize * scale else style.fontSize,
+        lineHeight = if (style.lineHeight.isSpecified) style.lineHeight * scale else style.lineHeight,
+    )
+    Text(
+        text,
+        style = scaled,
+        color = color,
+        maxLines = 1,
+        softWrap = false,
+        textAlign = textAlign,
+        modifier = modifier.drawWithContent { if (ready) drawContent() },
+        onTextLayout = { result ->
+            if (result.didOverflowWidth && scale > minScale) {
+                scale = (scale * 0.92f).coerceAtLeast(minScale)
+            } else {
+                ready = true
+            }
+        },
+    )
 }

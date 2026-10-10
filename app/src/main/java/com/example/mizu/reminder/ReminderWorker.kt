@@ -18,8 +18,9 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
         val logs = c.dao.logsSince(now.toLocalDate().atStartOfDay().toEpochMs()).map { it.toModel() }
         val content = ReminderEngine.contentAt(now, settings, logs.sumOf { it.amountMl }, logs.maxOfOrNull { it.timestamp })
 
-        // Re-check at fire time: the goal may have been reached, or the job may have been delayed past the window.
-        if (settings.remindersEnabled && content != null && ReminderEngine.isWithinWindow(now, settings)) {
+        // Re-check at fire time: the goal may have been reached, a drink may have caught up with the pace (adaptive),
+        // or the job may have been delayed past the window.
+        if (settings.remindersEnabled && content != null && ReminderEngine.isWithinWindow(now, settings) && ReminderEngine.shouldNotify(content, settings)) {
             NotificationHelper.show(applicationContext, settings.language, content, settings.goalMl)
             c.settings.setLastReminder(now)
         }

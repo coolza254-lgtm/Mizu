@@ -167,7 +167,7 @@
     <string name="reminder_rhythm">Reminder rhythm</string>
     <string name="mode_adaptive">By deficit</string>
     <string name="mode_fixed">Fixed</string>
-    <string name="mode_adaptive_hint">The further behind you are, the more often it reminds you.</string>
+    <string name="mode_adaptive_hint">No reminders while you keep up. Falls behind: reminds right away, more often and stronger the bigger the gap, up to a full-screen alarm</string>
     <string name="mode_fixed_hint">Reminds you at the same interval all day.</string>
     <string name="base_interval">Normally every</string>
     <string name="fixed_interval">Remind every</string>
@@ -226,4 +226,9 @@
     <string name="home_drinks_today">%1$d drinks today</string>
     <string name="home_timeline">Today · %1$d drinks</string>
     <string name="fill_short">Refill</string>
+    <string name="chart_actual">Drunk</string>
+    <string name="chart_pace">Even pace</string>
+    <string name="chart_goal">Goal %1$s ml</string>
+    <string name="home_goal_of">of %1$s ml goal</string>
+    <string name="home_left">%1$s ml to go</string>
 </resources>
