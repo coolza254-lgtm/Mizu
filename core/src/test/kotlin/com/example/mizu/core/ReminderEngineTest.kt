@@ -31,21 +31,21 @@ class ReminderEngineTest {
         val plan = assertNotNull(
             ReminderEngine.nextReminder(at(12), settings, listOf(log(at(11), 2000))),
         )
-        assertEquals(at(9, 0, tomorrow), plan.at)
+        assertEquals(at(8, 21, tomorrow), plan.at) // first behind the pace by 50 ml: 840 min * 50 / 2000
         assertNull(ReminderEngine.contentAt(at(12), settings, 2100))
     }
 
     @Test
-    fun beforeWindow_firstReminderIsWindowStartPlusBaseInterval() {
+    fun beforeWindow_firstReminderWhenFirstBehindThePace() {
         val plan = assertNotNull(ReminderEngine.nextReminder(at(6, 30), settings, emptyList()))
-        assertEquals(at(9), plan.at)
+        assertEquals(at(8, 21), plan.at)
         assertEquals(2000, plan.content.remainingMl)
     }
 
     @Test
     fun afterWindow_nextIsTomorrow() {
         val plan = assertNotNull(ReminderEngine.nextReminder(at(22, 30), settings, listOf(log(at(10), 500))))
-        assertEquals(at(9, 0, tomorrow), plan.at)
+        assertEquals(at(8, 21, tomorrow), plan.at)
         assertEquals(2000, plan.content.remainingMl)
     }
 
@@ -55,27 +55,89 @@ class ReminderEngineTest {
     }
 
     @Test
-    fun deficitTiers_setTheInterval() {
-        // 12:00 -> expected = 2000 * 4/14 = 571 ml.
+    fun deficitShrinksTheInterval() {
+        // 12:00 -> expected = 2000 * 4/14 = 571 ml. Defaults: 60 min on track, 15 min at a 600 ml deficit.
         val last = at(12)
         fun next(consumed: Int) = assertNotNull(
             ReminderEngine.nextReminder(at(12), settings, listOf(log(at(11), consumed)), lastReminderAt = last),
         ).at
 
-        assertEquals(at(13, 0), next(700)) // no deficit -> 60 min
-        assertEquals(at(12, 45), next(400)) // deficit 171 -> 45 min
-        assertEquals(at(12, 30), next(100)) // deficit 471 -> 30 min
-        assertEquals(at(12, 15), next(0)) // deficit 571 -> 15 min
+        assertEquals(at(13, 15), next(700)) // ahead: quiet until the pace reaches 750 ml (315 min after 08:00)
+        assertEquals(at(12, 47), next(400)) // deficit 171 -> 47 min
+        assertEquals(at(12, 25), next(100)) // deficit 471 -> 25 min
+        assertEquals(at(12, 17), next(0)) // deficit 571 -> 17 min
     }
 
     @Test
-    fun intervalNeverBelow15() {
-        assertEquals(15, ReminderEngine.intervalMinutes(5000))
-        assertEquals(45, ReminderEngine.intervalMinutes(249))
-        assertEquals(30, ReminderEngine.intervalMinutes(250))
-        assertEquals(30, ReminderEngine.intervalMinutes(500))
-        assertEquals(15, ReminderEngine.intervalMinutes(501))
-        assertEquals(60, ReminderEngine.intervalMinutes(0))
+    fun intervalCurveAndFloor() {
+        assertEquals(60, ReminderEngine.intervalMinutes(0, settings))
+        assertEquals(38, ReminderEngine.intervalMinutes(300, settings)) // half way: 60 - 45 * 0.5
+        assertEquals(15, ReminderEngine.intervalMinutes(600, settings))
+        assertEquals(15, ReminderEngine.intervalMinutes(5000, settings))
+        // user-tuned: every 45 min, as often as every 10 min from a 300 ml deficit
+        val tuned = settings.copy(baseIntervalMin = 45, minIntervalMin = 10, escalationMl = 300)
+        assertEquals(10, ReminderEngine.intervalMinutes(300, tuned))
+        // never below the hard floor
+        assertEquals(ReminderEngine.MIN_INTERVAL_MIN, ReminderEngine.intervalMinutes(900, tuned.copy(minIntervalMin = 1)))
+    }
+
+    @Test
+    fun fixedModeIgnoresTheDeficit() {
+        val fixed = settings.copy(reminderMode = ReminderMode.FIXED, baseIntervalMin = 40)
+        assertEquals(40, ReminderEngine.intervalMinutes(900, fixed))
+        val plan = assertNotNull(ReminderEngine.nextReminder(at(12), fixed, emptyList(), lastReminderAt = at(12)))
+        assertEquals(at(12, 40), plan.at)
+        // fixed keeps reminding even when ahead, and its first reminder is start + base interval
+        val ahead = assertNotNull(ReminderEngine.nextReminder(at(10), fixed, listOf(log(at(10), 900)), lastReminderAt = at(10)))
+        assertEquals(at(10, 40), ahead.at)
+        assertEquals(at(8, 40, tomorrow), assertNotNull(ReminderEngine.nextReminder(at(23), fixed, emptyList())).at)
+    }
+
+    @Test
+    fun adaptive_aheadOfPace_staysQuietUntilItFallsBehind() {
+        // 800 ml by 10:00 (pace expects 286): the pace reaches 850 ml at 08:00 + 357 min.
+        val plan = assertNotNull(ReminderEngine.nextReminder(at(10), settings, listOf(log(at(10), 800)), lastReminderAt = at(9)))
+        assertEquals(at(13, 57), plan.at)
+        // nothing drunk since 10:00 (> 120 min dry) -> the first reminder is already strong
+        assertEquals(ReminderLevel.STRONG, plan.content.level)
+        assertTrue(plan.content.deficitMl >= ReminderEngine.BEHIND_THRESHOLD_ML)
+    }
+
+    @Test
+    fun adaptive_justFellBehind_remindsRightAway() {
+        // 500 ml at 09:00; at 12:00 the pace expects 571 -> 71 behind. Last reminder long ago -> now.
+        val plan = assertNotNull(ReminderEngine.nextReminder(at(12), settings, listOf(log(at(9), 500)), lastReminderAt = at(9)))
+        assertEquals(at(12), plan.at)
+    }
+
+    @Test
+    fun adaptive_fireTimeRecheck() {
+        val behind = assertNotNull(ReminderEngine.contentAt(at(12), settings, 400))
+        assertTrue(ReminderEngine.shouldNotify(behind, settings))
+        val caughtUp = assertNotNull(ReminderEngine.contentAt(at(12), settings, 600))
+        assertTrue(!ReminderEngine.shouldNotify(caughtUp, settings))
+        assertTrue(ReminderEngine.shouldNotify(caughtUp, settings.copy(reminderMode = ReminderMode.FIXED)))
+    }
+
+    @Test
+    fun levelsEscalateWithDeficitAndDryTime() {
+        val s = settings.copy(strongDeficitMl = 400, alarmDeficitMl = 800, dryMinutes = 120)
+        assertEquals(ReminderLevel.GENTLE, ReminderEngine.level(100, false, 30, s))
+        assertEquals(ReminderLevel.STRONG, ReminderEngine.level(450, false, 30, s))
+        assertEquals(ReminderLevel.STRONG, ReminderEngine.level(100, false, 130, s)) // dry for too long
+        assertEquals(ReminderLevel.STRONG, ReminderEngine.level(100, true, 30, s)) // end-of-day push
+        assertEquals(ReminderLevel.ALARM, ReminderEngine.level(850, false, 30, s))
+        assertEquals(ReminderLevel.STRONG, ReminderEngine.level(850, false, 30, s.copy(alarmEnabled = false)))
+    }
+
+    @Test
+    fun contentCarriesTheLevel() {
+        // 15:00, nothing since 08:00: deficit 1000 -> alarm
+        val c = assertNotNull(ReminderEngine.contentAt(at(15), settings, 0, lastDrinkAt = null))
+        assertEquals(ReminderLevel.ALARM, c.level)
+        // 09:30 after a drink at 09:00, on track -> gentle
+        val g = assertNotNull(ReminderEngine.contentAt(at(9, 30), settings, 300, lastDrinkAt = at(9)))
+        assertEquals(ReminderLevel.GENTLE, g.level)
     }
 
     @Test
@@ -137,7 +199,7 @@ class ReminderEngineTest {
     fun logResetsIntervalReference() {
         val logs = listOf(log(at(12, 20), 100))
         val plan = assertNotNull(ReminderEngine.nextReminder(at(12, 20), settings, logs, lastReminderAt = at(12)))
-        assertEquals(at(12, 35), plan.at) // at 12:20 expected 619, drunk 100 -> deficit 519 -> 15 min after the 12:20 log
+        assertEquals(at(12, 41), plan.at) // at 12:20 expected 619, drunk 100 -> deficit 519 -> 21 min after the 12:20 log
     }
 
     @Test
