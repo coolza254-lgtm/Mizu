@@ -278,13 +278,17 @@ private fun AdviceBlock(a: PaceAdvice) {
             title = stringResource(R.string.advice_before_start_t)
             detail = stringResource(R.string.advice_before_start_d, by, a.drinkNowMl.grouped())
         }
-        PaceState.BEHIND -> {
-            title = stringResource(R.string.advice_behind_t, (-a.gapMl).grouped())
-            detail = stringResource(R.string.advice_behind_d, a.drinkNowMl.grouped(), by, a.ratePerHourMl.grouped())
-        }
-        PaceState.BEHIND_FAR -> {
-            title = stringResource(R.string.advice_behind_far_t, (-a.gapMl).grouped())
-            detail = stringResource(R.string.advice_behind_far_d, a.drinkNowMl.grouped(), a.ratePerHourMl.grouped())
+        PaceState.BEHIND, PaceState.BEHIND_FAR -> {
+            title = if (a.state == PaceState.BEHIND) {
+                stringResource(R.string.advice_behind_t, (-a.gapMl).grouped())
+            } else {
+                stringResource(R.string.advice_behind_far_t, (-a.gapMl).grouped())
+            }
+            detail = when {
+                a.restFirst -> stringResource(R.string.advice_rest_first_d, a.lastDrinkMl.grouped(), a.drinkNowMl.grouped(), by, a.ratePerHourMl.grouped())
+                a.state == PaceState.BEHIND -> stringResource(R.string.advice_behind_d, a.drinkNowMl.grouped(), by, a.ratePerHourMl.grouped())
+                else -> stringResource(R.string.advice_behind_far_d, a.drinkNowMl.grouped(), a.ratePerHourMl.grouped())
+            }
         }
         PaceState.ON_TRACK -> {
             title = stringResource(R.string.advice_on_track_t)
@@ -326,6 +330,10 @@ private fun AdviceBlock(a: PaceAdvice) {
     ) {
         Text(title, style = MaterialTheme.typography.titleMedium, color = accent)
         Text(detail, style = MaterialTheme.typography.bodyMedium, color = MizuColors.InkSoft)
+        // Catching up would need more than the body comfortably takes: say so instead of pushing.
+        if ((a.state == PaceState.BEHIND || a.state == PaceState.BEHIND_FAR) && a.ratePerHourMl > PaceAdvisor.COMFORT_ML_PER_HOUR) {
+            Text(stringResource(R.string.advice_pace_cap), style = MaterialTheme.typography.bodyMedium, color = MizuColors.Warn)
+        }
     }
 }
 

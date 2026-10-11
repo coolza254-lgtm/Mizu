@@ -35,13 +35,41 @@ class PaceAdvisorTest {
     }
 
     @Test
-    fun farBehind_capsOneDrinkAt500AndAsksSoon() {
+    fun farBehind_oneComfortableSipNow() {
         // 15:00 expects 1000 ml.
         val a = advise(at(15), log(at(9), 300))
         assertEquals(PaceState.BEHIND_FAR, a.state)
         assertEquals(-700, a.gapMl)
-        assertEquals(500, a.drinkNowMl)
+        assertEquals(300, a.drinkNowMl) // never more than one comfortable sip
         assertEquals(at(15, 15), a.byTime)
+        assertEquals(false, a.restFirst)
+    }
+
+    @Test
+    fun justDrankALot_restFirstEvenWhenFarBehind() {
+        // User report: 338 ml just logged, still far behind -> do not ask for more right away.
+        val a = advise(at(13, 35), log(at(13, 30), 338))
+        assertEquals(PaceState.BEHIND_FAR, a.state)
+        assertEquals(true, a.restFirst)
+        assertEquals(300, a.drinkNowMl)
+        assertEquals(338, a.lastDrinkMl)
+        // 288 ml still settling at 13:35, down to 150 after 138 ml / 600 ml/h = 13.8 min
+        assertEquals(at(13, 49), a.byTime)
+    }
+
+    @Test
+    fun smallRecentSip_doesNotDelay() {
+        val a = advise(at(11, 30), log(at(9), 150), log(at(11, 25), 100))
+        assertEquals(PaceState.BEHIND, a.state)
+        assertEquals(false, a.restFirst)
+    }
+
+    @Test
+    fun settlingDrainsAt600PerHour() {
+        val logs = listOf(log(at(12), 400), log(at(12, 30), 300))
+        assertEquals(400.0, PaceAdvisor.settlingMl(at(12), logs), 0.01)
+        assertEquals(400.0, PaceAdvisor.settlingMl(at(12, 30), logs), 0.01) // 400 - 300 + 300
+        assertEquals(0.0, PaceAdvisor.settlingMl(at(13, 30), logs), 0.01)
     }
 
     @Test

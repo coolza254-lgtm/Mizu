@@ -199,7 +199,7 @@
     <string name="advice_behind_t">ペースより %1$s ml 遅れ</string>
     <string name="advice_behind_d">%2$s までに %1$s ml、その後は毎時 約 %3$s ml</string>
     <string name="advice_behind_far_t">大幅に不足: %1$s ml</string>
-    <string name="advice_behind_far_d">今すぐ %1$s ml を少しずつ (1回 500 ml まで) · その後は毎時 約 %2$s ml</string>
+    <string name="advice_behind_far_d">今すぐ %1$s ml を少しずつ、その後は30分ごとに · 毎時 約 %2$s ml</string>
     <string name="advice_on_track_t">ペース通り 👍</string>
     <string name="advice_on_track_d">次は %2$s に約 %1$s ml · 残り %3$s ml</string>
     <string name="advice_ahead_t">ペースより %1$s ml 先行</string>
@@ -231,4 +231,6 @@
     <string name="chart_goal">目標 %1$s ml</string>
     <string name="home_goal_of">目標 %1$s ml</string>
     <string name="home_left">残り %1$s ml</string>
+    <string name="advice_rest_first_d">%1$s ml 飲んだばかり。少し休んで %3$s に %2$s ml、一気飲みは不要 · その後は毎時 約 %4$s ml</string>
+    <string name="advice_pace_cap">今日は目標に届かないかもしれません。毎時 600 ml を超えて急がず、無理のない範囲で</string>
 </resources>

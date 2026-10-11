@@ -86,11 +86,18 @@ object ReminderEngine {
 
     fun expectedMl(goalMl: Int, elapsedFraction: Double): Int = (goalMl * elapsedFraction).roundToInt()
 
-    /** clamp(round(deficit, 50 ml), 100 ml, remaining). If remaining < 100 the remaining amount itself is suggested. */
+    /** One comfortable drink: catching up a big deficit is spread over several of these. */
+    const val MAX_SIP_ML = 300
+
+    /**
+     * clamp(round(deficit, 50 ml), 100 ml, min(remaining, [MAX_SIP_ML])). If remaining < 100 the remaining amount
+     * itself is suggested.
+     */
     fun suggestedAmountMl(deficitMl: Int, remainingMl: Int): Int {
         if (remainingMl <= 0) return 0
         val rounded = ((max(deficitMl, 0) / 50.0).roundToInt()) * 50
-        return rounded.coerceIn(min(100, remainingMl), remainingMl)
+        val cap = min(remainingMl, MAX_SIP_ML)
+        return rounded.coerceIn(min(100, cap), cap)
     }
 
     fun feasibility(remainingMl: Int, hoursLeft: Double): Feasibility {
@@ -196,6 +203,9 @@ object ReminderEngine {
         var at = reference.plusMinutes(interval.toLong())
         if (snoozing) at = snoozeUntil!!
         if (at.isBefore(effectiveNow)) at = effectiveNow
+        // Not right after a big drink: wait until it has settled enough for the next sip.
+        val ready = PaceAdvisor.readyAt(effectiveNow, todayLogs, current.suggestedMl)
+        if (ready.isAfter(at)) at = ready
         if (!at.isBefore(end)) return tomorrowPlan(date, settings)
 
         val content = contentAt(at, settings, consumed, lastDrink) ?: return tomorrowPlan(date, settings)

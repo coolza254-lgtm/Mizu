@@ -88,7 +88,7 @@ class ReminderEngineTest {
         val plan = assertNotNull(ReminderEngine.nextReminder(at(12), fixed, emptyList(), lastReminderAt = at(12)))
         assertEquals(at(12, 40), plan.at)
         // fixed keeps reminding even when ahead, and its first reminder is start + base interval
-        val ahead = assertNotNull(ReminderEngine.nextReminder(at(10), fixed, listOf(log(at(10), 900)), lastReminderAt = at(10)))
+        val ahead = assertNotNull(ReminderEngine.nextReminder(at(10), fixed, listOf(log(at(10), 300)), lastReminderAt = at(10)))
         assertEquals(at(10, 40), ahead.at)
         assertEquals(at(8, 40, tomorrow), assertNotNull(ReminderEngine.nextReminder(at(23), fixed, emptyList())).at)
     }
@@ -142,10 +142,11 @@ class ReminderEngineTest {
 
     @Test
     fun endOfDayPush_firesEvenThoughTierWouldWaitLonger() {
-        // 21:00, 1400 ml drunk -> deficit 457 (medium = 30 min), but 600 ml in 1 h = 600 ml/h > 500.
-        val logs = listOf(log(at(21), 1400))
+        // 21:00, 1400 ml drunk -> 600 ml left in 1 h = 600 ml/h > 500: urgent, minimum interval (15 min) ...
+        // ... but the 400 ml just drunk must settle to 150 ml first: 250 ml / 600 ml/h = 25 min.
+        val logs = listOf(log(at(14), 1000), log(at(21), 400))
         val plan = assertNotNull(ReminderEngine.nextReminder(at(21), settings, logs))
-        assertEquals(at(21, 15), plan.at)
+        assertEquals(at(21, 25), plan.at)
         assertTrue(plan.content.urgent)
         assertEquals(Feasibility.NOT_REACHABLE, plan.content.feasibility)
         assertEquals(600, plan.content.remainingMl)
@@ -196,6 +197,14 @@ class ReminderEngineTest {
     }
 
     @Test
+    fun bigDrinkJustNow_nextReminderWaitsForItToSettle() {
+        // 15:00, 338 ml just drunk, far behind (expected 1000): the deficit alone says every 15 min -> 15:15.
+        val plan = assertNotNull(ReminderEngine.nextReminder(at(15), settings, listOf(log(at(15), 338)), lastReminderAt = at(14, 45)))
+        assertEquals(at(15, 19), plan.at) // 188 ml over the settled level / 600 ml/h = 18.8 min -> 19
+        assertTrue(plan.content.suggestedMl <= ReminderEngine.MAX_SIP_ML)
+    }
+
+    @Test
     fun logResetsIntervalReference() {
         val logs = listOf(log(at(12, 20), 100))
         val plan = assertNotNull(ReminderEngine.nextReminder(at(12, 20), settings, logs, lastReminderAt = at(12)))
@@ -207,7 +216,8 @@ class ReminderEngineTest {
         assertEquals(100, ReminderEngine.suggestedAmountMl(-300, 1000)) // min 100
         assertEquals(100, ReminderEngine.suggestedAmountMl(60, 1000)) // 50 -> clamped up to 100
         assertEquals(250, ReminderEngine.suggestedAmountMl(240, 1000))
-        assertEquals(400, ReminderEngine.suggestedAmountMl(900, 400)) // max remaining
+        assertEquals(300, ReminderEngine.suggestedAmountMl(900, 400)) // one comfortable sip at most
+        assertEquals(200, ReminderEngine.suggestedAmountMl(900, 200)) // max remaining
         assertEquals(60, ReminderEngine.suggestedAmountMl(500, 60)) // remaining below 100
         assertEquals(0, ReminderEngine.suggestedAmountMl(500, 0))
     }

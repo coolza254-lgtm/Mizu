@@ -199,7 +199,7 @@
     <string name="advice_behind_t">%1$s ml behind pace</string>
     <string name="advice_behind_d">Drink %1$s ml by %2$s, then about %3$s ml/h</string>
     <string name="advice_behind_far_t">Far behind: %1$s ml</string>
-    <string name="advice_behind_far_d">Drink %1$s ml now, in sips, max 500 ml at once · then about %2$s ml/h</string>
+    <string name="advice_behind_far_d">Drink %1$s ml now, in sips, then again about every 30 min · then about %2$s ml/h</string>
     <string name="advice_on_track_t">Right on pace 👍</string>
     <string name="advice_on_track_d">Next: about %1$s ml at %2$s · %3$s ml to go</string>
     <string name="advice_ahead_t">%1$s ml ahead of pace</string>
@@ -231,4 +231,6 @@
     <string name="chart_goal">Goal %1$s ml</string>
     <string name="home_goal_of">of %1$s ml goal</string>
     <string name="home_left">%1$s ml to go</string>
+    <string name="advice_rest_first_d">You just had %1$s ml. Let it settle, then drink %2$s ml at %3$s, no need to gulp · then about %4$s ml/h</string>
+    <string name="advice_pace_cap">You may not reach the goal today. Do not push past 600 ml/h; drink what feels comfortable</string>
 </resources>
