@@ -237,4 +237,6 @@
     <string name="siren_mode_hint">アラーム時に画面が赤く点滅しサイレンが鳴ります。オフで端末のアラーム音</string>
     <string name="channel_alarm_siren">アラーム通知 (サイレン)</string>
     <string name="alarm_danger">水分不足!</string>
+    <string name="over_apps_permission">使用中も全画面で表示</string>
+    <string name="over_apps_permission_hint">タップして「他のアプリの上に表示」を許可。未許可だとロック中のみ全画面、使用中はバナー表示</string>
 </resources>

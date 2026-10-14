@@ -82,7 +82,12 @@ object NotificationHelper {
      * that only mirror text still read well. Actions: Drank, Snooze, and Reply (for wearables such as the
      * Galaxy Fit3 that only offer quick-response replies; a reply of "snooze" snoozes, anything else logs).
      */
-    fun show(context: Context, language: AppLanguage, content: ReminderContent, goalMl: Int, siren: Boolean = true) {
+    /**
+     * @param openAlarm open the alarm screen directly (the in-app test). Real alarm-level reminders also do so
+     *        when "display over other apps" is allowed, because a full-screen notification on its own only takes
+     *        over the screen while the phone is locked or off; in use, Android shows a heads-up instead.
+     */
+    fun show(context: Context, language: AppLanguage, content: ReminderContent, goalMl: Int, siren: Boolean = true, openAlarm: Boolean = false) {
         val ctx = context.localized(language)
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return
@@ -173,13 +178,26 @@ object NotificationHelper {
             )
             builder.setFullScreenIntent(alarm, true).setOngoing(true)
         }
+        val direct = content.level == ReminderLevel.ALARM && (openAlarm || canShowOverApps(context))
+        // The alarm screen plays its own sound; keep the notification quiet so they don't overlap.
+        if (direct) builder.setSilent(true)
         val notification = builder.build()
         try {
             manager.notify(NOTIFICATION_ID, notification)
         } catch (_: SecurityException) {
             // POST_NOTIFICATIONS revoked between the check and the call.
         }
+        if (direct) {
+            try {
+                context.startActivity(alarmIntent(context, content))
+            } catch (_: Exception) {
+                // Background start refused: the full-screen intent / heads-up above still alerts.
+            }
+        }
     }
+
+    /** "Display over other apps": lets the alarm screen open from the background while the phone is in use. */
+    fun canShowOverApps(context: Context): Boolean = android.provider.Settings.canDrawOverlays(context)
 
     fun alarmIntent(context: Context, content: ReminderContent): Intent =
         Intent(context, AlarmActivity::class.java)

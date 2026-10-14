@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.FileDownload
@@ -121,6 +122,7 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
     var resumeTick by remember { mutableStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumeTick++ }
     val fullScreenAllowed = remember(resumeTick) { NotificationHelper.canUseFullScreen(context) }
+    val overAppsAllowed = remember(resumeTick) { NotificationHelper.canShowOverApps(context) }
 
     Column(
         Modifier.verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = bottomPadding),
@@ -272,6 +274,14 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
                         onClick = { openFullScreenSettings(context) },
                     )
                 }
+                if (!overAppsAllowed) {
+                    RowDivider()
+                    SettingsRow(
+                        Icons.Rounded.Fullscreen, stringResource(R.string.over_apps_permission),
+                        subtitle = stringResource(R.string.over_apps_permission_hint),
+                        onClick = { openOverAppsSettings(context) },
+                    )
+                }
             }
             RowDivider()
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -403,6 +413,13 @@ private fun fontLabel(f: AppFont) = when (f) {
     AppFont.PROMPT -> "Prompt"
     AppFont.SARABUN -> "Sarabun"
     AppFont.MALI -> "Mali"
+}
+
+private fun openOverAppsSettings(context: android.content.Context) {
+    context.startActivity(
+        android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:${context.packageName}"))
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+    )
 }
 
 private fun openFullScreenSettings(context: android.content.Context) {

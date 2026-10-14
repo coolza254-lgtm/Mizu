@@ -237,4 +237,6 @@
     <string name="siren_mode_hint">ตอนเตือนแบบปลุก จอจะกะพริบสีแดงพร้อมเสียงไซเรน ปิดแล้วใช้เสียงปลุกของเครื่องแทน</string>
     <string name="channel_alarm_siren">เตือนแบบปลุก (ไซเรน)</string>
     <string name="alarm_danger">ขาดน้ำ!</string>
+    <string name="over_apps_permission">ให้ขึ้นเต็มจอขณะใช้เครื่องอยู่</string>
+    <string name="over_apps_permission_hint">แตะแล้วเปิด “แสดงทับแอปอื่น” ให้ Mizu ไม่งั้นจะขึ้นเต็มจอเฉพาะตอนล็อกจอ ตอนใช้เครื่องจะเป็นแถบแจ้งเตือนแทน</string>
 </resources>

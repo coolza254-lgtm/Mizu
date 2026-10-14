@@ -237,4 +237,6 @@
     <string name="siren_mode_hint">At alarm level the screen pulses red with a siren. Off: the phone alarm sound</string>
     <string name="channel_alarm_siren">Alarm reminders (siren)</string>
     <string name="alarm_danger">Dehydration alert!</string>
+    <string name="over_apps_permission">Full screen while using the phone</string>
+    <string name="over_apps_permission_hint">Tap and allow “Display over other apps”. Without it the alarm only fills the screen while locked; in use it is a banner</string>
 </resources>
