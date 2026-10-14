@@ -1,6 +1,22 @@
 package com.example.mizu.reminder
 
 import android.media.AudioAttributes
+import android.media.MediaPlayer
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import kotlinx.coroutines.flow.first
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.os.Build
@@ -53,10 +69,15 @@ import com.example.mizu.ui.grouped
 import com.example.mizu.util.localizedWrapper
 import kotlinx.coroutines.launch
 
-/** Alarm-style reminder: full screen (also over the lock screen), looping alarm sound and vibration until answered. */
+/**
+ * Alarm-style reminder: full screen (also over the lock screen), looping sound and vibration until answered.
+ * With the siren setting on, the screen pulses alert-red and a siren plays; otherwise the phone's alarm sound.
+ */
 class AlarmActivity : ComponentActivity() {
     private var ringtone: Ringtone? = null
+    private var player: MediaPlayer? = null
     private var vibrator: Vibrator? = null
+    private var stopped = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,7 +93,7 @@ class AlarmActivity : ComponentActivity() {
         val amount = intent.getIntExtra(NotificationHelper.EXTRA_AMOUNT_ML, 250)
         val remaining = intent.getIntExtra(NotificationHelper.EXTRA_REMAINING_ML, 0)
         val deficit = intent.getIntExtra(NotificationHelper.EXTRA_DEFICIT_ML, 0)
-        startAlarm()
+        lifecycleScope.launch { startAlarm(container.settings.settings.first().sirenEnabled) }
 
         setContent {
             val settings by container.settings.settings.collectAsState(initial = null)
@@ -88,6 +109,7 @@ class AlarmActivity : ComponentActivity() {
                         LocalHaptics provides haptics,
                     ) {
                         AlarmScreen(
+                            red = s.sirenEnabled,
                             amountMl = amount,
                             remainingMl = remaining,
                             deficitMl = deficit,
@@ -110,14 +132,9 @@ class AlarmActivity : ComponentActivity() {
         }
     }
 
-    private fun startAlarm() {
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        ringtone = RingtoneManager.getRingtone(this, uri)?.apply {
-            audioAttributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) isLooping = true
-            play()
-        }
+    private fun startAlarm(siren: Boolean) {
+        if (stopped) return
+        if (!siren || !startSiren()) startRingtone()
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             getSystemService(VibratorManager::class.java)?.defaultVibrator
         } else {
@@ -130,9 +147,47 @@ class AlarmActivity : ComponentActivity() {
         }
     }
 
+    /** Loops res/raw/siren at alarm volume. False if it could not be played (falls back to the ringtone). */
+    private fun startSiren(): Boolean = try {
+        player = MediaPlayer().apply {
+            setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build(),
+            )
+            setDataSource(this@AlarmActivity, NotificationHelper.sirenUri(this@AlarmActivity))
+            isLooping = true
+            prepare()
+            start()
+        }
+        true
+    } catch (_: Exception) {
+        player?.release()
+        player = null
+        false
+    }
+
+    private fun startRingtone() {
+        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        ringtone = RingtoneManager.getRingtone(this, uri)?.apply {
+            audioAttributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) isLooping = true
+            play()
+        }
+    }
+
     private fun stopAlarm() {
+        stopped = true
         ringtone?.stop()
         ringtone = null
+        try {
+            player?.stop()
+        } catch (_: IllegalStateException) {
+        }
+        player?.release()
+        player = null
         vibrator?.cancel()
     }
 
@@ -144,6 +199,7 @@ class AlarmActivity : ComponentActivity() {
 
 @Composable
 private fun AlarmScreen(
+    red: Boolean,
     amountMl: Int,
     remainingMl: Int,
     deficitMl: Int,
@@ -152,24 +208,58 @@ private fun AlarmScreen(
     onDismiss: () -> Unit,
 ) {
     val ml = stringResource(R.string.unit_ml)
+    // Alert mode: the whole screen fades between deep and bright red (slow, ~1 s; not a strobe).
+    val pulse = rememberInfiniteTransition(label = "alert")
+    val t by pulse.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "alertPulse",
+    )
+    val background = if (red) {
+        Modifier.background(
+            Brush.radialGradient(
+                listOf(lerp(AlertDeep, AlertBright, t), lerp(AlertDarkest, AlertDeep, t)),
+                radius = 1400f,
+            ),
+        )
+    } else {
+        Modifier.dotGrid()
+    }
+    val onColor = if (red) Color.White else MizuColors.Ink
+    val softColor = if (red) Color.White.copy(alpha = 0.85f) else MizuColors.InkSoft
     Column(
-        Modifier.fillMaxSize().dotGrid().statusBarsPadding().navigationBarsPadding()
+        Modifier.fillMaxSize().then(background).statusBarsPadding().navigationBarsPadding()
             .verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
     ) {
-        MonoKicker("mizu / alarm")
-        Text(stringResource(R.string.alarm_title), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+        if (red) {
+            Icon(
+                Icons.Rounded.Warning,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(56.dp).graphicsLayer { scaleX = 0.9f + 0.2f * t; scaleY = 0.9f + 0.2f * t },
+            )
+            Text(stringResource(R.string.alarm_danger), style = MaterialTheme.typography.titleLarge, color = Color.White)
+        } else {
+            MonoKicker("mizu / alarm")
+        }
+        Text(stringResource(R.string.alarm_title), style = MaterialTheme.typography.headlineMedium, color = onColor, textAlign = TextAlign.Center)
         BottleGauge(previousWater = 0, newWater = 0, capacityMl = 1000, modifier = Modifier.size(width = 74.dp, height = 152.dp))
         Text(
             stringResource(R.string.alarm_behind, deficitMl.coerceAtLeast(0).grouped(), remainingMl.grouped()),
             style = MaterialTheme.typography.bodyLarge,
-            color = MizuColors.InkSoft,
+            color = softColor,
             textAlign = TextAlign.Center,
         )
-        Text("${amountMl.grouped()} $ml", style = MaterialTheme.typography.displayMedium)
+        Text("${amountMl.grouped()} $ml", style = MaterialTheme.typography.displayMedium, color = onColor)
         PrimaryButton(stringResource(R.string.alarm_drank, amountMl.grouped()), onDrank, Modifier.fillMaxWidth(), haptic = HapticKind.SUCCESS)
         SoftButton(stringResource(R.string.notif_action_snooze), onSnooze, Modifier.fillMaxWidth())
         SoftButton(stringResource(R.string.alarm_dismiss), onDismiss, Modifier.fillMaxWidth(), color = MizuColors.InkSoft, haptic = HapticKind.TICK)
     }
 }
+
+private val AlertBright = Color(0xFFF0443A)
+private val AlertDeep = Color(0xFFB3141B)
+private val AlertDarkest = Color(0xFF6E0A0F)

@@ -233,4 +233,8 @@
     <string name="home_left">%1$s ml to go</string>
     <string name="advice_rest_first_d">You just had %1$s ml. Let it settle, then drink %2$s ml at %3$s, no need to gulp · then about %4$s ml/h</string>
     <string name="advice_pace_cap">You may not reach the goal today. Do not push past 600 ml/h; drink what feels comfortable</string>
+    <string name="siren_mode">Siren + red alert screen</string>
+    <string name="siren_mode_hint">At alarm level the screen pulses red with a siren. Off: the phone alarm sound</string>
+    <string name="channel_alarm_siren">Alarm reminders (siren)</string>
+    <string name="alarm_danger">Dehydration alert!</string>
 </resources>

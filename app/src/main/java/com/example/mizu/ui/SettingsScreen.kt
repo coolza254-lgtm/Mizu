@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Flag
@@ -256,6 +257,12 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
                     Icons.Rounded.NotificationImportant, stringResource(R.string.alarm_at),
                     value = "${s.alarmDeficitMl.grouped()} $ml",
                     onClick = { editing = NumberField.ALARM_DEFICIT },
+                )
+                RowDivider()
+                SettingsRow(
+                    Icons.Rounded.Campaign, stringResource(R.string.siren_mode),
+                    subtitle = stringResource(R.string.siren_mode_hint),
+                    trailing = { MizuSwitch(s.sirenEnabled) { on -> vm.updateSettings { it.copy(sirenEnabled = on) } } },
                 )
                 if (!fullScreenAllowed) {
                     RowDivider()

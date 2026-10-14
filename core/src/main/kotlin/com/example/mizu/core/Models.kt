@@ -72,6 +72,8 @@ data class MizuSettings(
     val dryMinutes: Int = 120,
     /** Full-screen, alarm-style reminder when the deficit reaches [alarmDeficitMl]. */
     val alarmEnabled: Boolean = true,
+    /** Alarm level: red alert screen with a siren (false = the system alarm sound). */
+    val sirenEnabled: Boolean = true,
     val alarmDeficitMl: Int = 800,
 ) {
     /** The goal actually in effect for the chosen [goalMode]. */

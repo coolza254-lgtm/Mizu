@@ -49,6 +49,7 @@ class SettingsRepository(context: Context) {
         val strongDeficit = intPreferencesKey("strong_deficit_ml")
         val dryMinutes = intPreferencesKey("dry_minutes")
         val alarmEnabled = booleanPreferencesKey("alarm_enabled")
+        val sirenEnabled = booleanPreferencesKey("siren_enabled")
         val alarmDeficit = intPreferencesKey("alarm_deficit_ml")
         val lastReminder = longPreferencesKey("last_reminder_ms")
         val snoozeUntil = longPreferencesKey("snooze_until_ms")
@@ -89,6 +90,7 @@ class SettingsRepository(context: Context) {
             prefs[Keys.strongDeficit] = next.strongDeficitMl
             prefs[Keys.dryMinutes] = next.dryMinutes
             prefs[Keys.alarmEnabled] = next.alarmEnabled
+            prefs[Keys.sirenEnabled] = next.sirenEnabled
             prefs[Keys.alarmDeficit] = next.alarmDeficitMl
         }
     }
@@ -136,6 +138,7 @@ class SettingsRepository(context: Context) {
             strongDeficitMl = this[Keys.strongDeficit] ?: d.strongDeficitMl,
             dryMinutes = this[Keys.dryMinutes] ?: d.dryMinutes,
             alarmEnabled = this[Keys.alarmEnabled] ?: d.alarmEnabled,
+            sirenEnabled = this[Keys.sirenEnabled] ?: d.sirenEnabled,
             alarmDeficitMl = this[Keys.alarmDeficit] ?: d.alarmDeficitMl,
         )
     }

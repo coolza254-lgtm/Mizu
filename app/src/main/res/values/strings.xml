@@ -233,4 +233,8 @@
     <string name="home_left">เหลืออีก %1$s ml</string>
     <string name="advice_rest_first_d">เพิ่งดื่มไป %1$s ml · พักให้ร่างกายดูดซึมก่อน แล้วดื่มอีก %2$s ml ตอน %3$s ไม่ต้องดื่มรวดเดียว · ต่อจากนี้ราว %4$s ml/ชม.</string>
     <string name="advice_pace_cap">วันนี้อาจไม่ทันเป้า ไม่ควรเร่งดื่มเกิน 600 ml/ชม. ดื่มตามได้เท่าที่สบาย</string>
+    <string name="siren_mode">ไซเรน + จอแดงเตือนภัย</string>
+    <string name="siren_mode_hint">ตอนเตือนแบบปลุก จอจะกะพริบสีแดงพร้อมเสียงไซเรน ปิดแล้วใช้เสียงปลุกของเครื่องแทน</string>
+    <string name="channel_alarm_siren">เตือนแบบปลุก (ไซเรน)</string>
+    <string name="alarm_danger">ขาดน้ำ!</string>
 </resources>

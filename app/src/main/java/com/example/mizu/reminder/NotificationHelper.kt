@@ -24,6 +24,7 @@ object NotificationHelper {
     const val CHANNEL_ID = "reminders"
     const val CHANNEL_STRONG = "reminders_strong"
     const val CHANNEL_ALARM = "reminders_alarm"
+    const val CHANNEL_SIREN = "reminders_alarm_siren"
     const val EXTRA_REMAINING_ML = "remaining_ml"
     const val EXTRA_DEFICIT_ML = "deficit_ml"
     private val STRONG_VIBRATION = longArrayOf(0, 400, 200, 400, 200, 700)
@@ -57,7 +58,22 @@ object NotificationHelper {
                 setBypassDnd(false)
             },
         )
+        // Same as the alarm channel but with the siren (a channel's sound is fixed once created, hence two).
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_SIREN, context.getString(R.string.channel_alarm_siren), NotificationManager.IMPORTANCE_HIGH).apply {
+                enableVibration(true)
+                vibrationPattern = STRONG_VIBRATION
+                setSound(
+                    sirenUri(context),
+                    android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).build(),
+                )
+                setBypassDnd(false)
+            },
+        )
     }
+
+    fun sirenUri(context: Context): android.net.Uri =
+        android.net.Uri.parse("android.resource://${context.packageName}/${R.raw.siren}")
 
     private fun Int.grouped(): String = String.format(Locale.US, "%,d", this)
 
@@ -66,7 +82,7 @@ object NotificationHelper {
      * that only mirror text still read well. Actions: Drank, Snooze, and Reply (for wearables such as the
      * Galaxy Fit3 that only offer quick-response replies; a reply of "snooze" snoozes, anything else logs).
      */
-    fun show(context: Context, language: AppLanguage, content: ReminderContent, goalMl: Int) {
+    fun show(context: Context, language: AppLanguage, content: ReminderContent, goalMl: Int, siren: Boolean = true) {
         val ctx = context.localized(language)
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return
@@ -129,7 +145,7 @@ object NotificationHelper {
         val channel = when (content.level) {
             ReminderLevel.GENTLE -> CHANNEL_ID
             ReminderLevel.STRONG -> CHANNEL_STRONG
-            ReminderLevel.ALARM -> CHANNEL_ALARM
+            ReminderLevel.ALARM -> if (siren) CHANNEL_SIREN else CHANNEL_ALARM
         }
         val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_drop)

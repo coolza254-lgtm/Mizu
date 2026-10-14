@@ -4,6 +4,15 @@ package com.example.mizu.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -115,6 +124,9 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
         else -> stringResource(R.string.tomorrow_at, next.format(TIME_FORMAT))
     }
 
+    // Far behind (with the red alert setting on): the screen edges pulse red, like a warning light.
+    val alert = s.sirenEnabled && advice.state == PaceState.BEHIND_FAR
+    Box(Modifier.fillMaxSize()) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = bottomPadding),
@@ -193,6 +205,8 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
             }
         }
     }
+    if (alert) AlertGlow(Modifier.matchParentSize())
+    }
 
     confirmFill?.let { b ->
         FillConfirmSheet(
@@ -243,6 +257,37 @@ private fun durationText(minutes: Long): String {
 private sealed interface AmountSheetTarget {
     data object New : AmountSheetTarget
     data class Edit(val log: DrinkLog) : AmountSheetTarget
+}
+
+/** Red glow along the screen edges that slowly pulses; draws only, never takes touches. */
+@Composable
+private fun AlertGlow(modifier: Modifier = Modifier) {
+    val pulse = rememberInfiniteTransition(label = "alertGlow")
+    val t by pulse.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 0.75f,
+        animationSpec = infiniteRepeatable(tween(1100, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "alertGlowPulse",
+    )
+    Box(
+        modifier.drawBehind {
+            val red = Color(0xFFE53935)
+            val depth = 64.dp.toPx()
+            val edge = listOf(red.copy(alpha = t), Color.Transparent)
+            drawRect(Brush.verticalGradient(edge, startY = 0f, endY = depth), size = Size(size.width, depth))
+            drawRect(
+                Brush.verticalGradient(edge.reversed(), startY = size.height - depth, endY = size.height),
+                topLeft = Offset(0f, size.height - depth),
+                size = Size(size.width, depth),
+            )
+            drawRect(Brush.horizontalGradient(edge, startX = 0f, endX = depth), size = Size(depth, size.height))
+            drawRect(
+                Brush.horizontalGradient(edge.reversed(), startX = size.width - depth, endX = size.width),
+                topLeft = Offset(size.width - depth, 0f),
+                size = Size(depth, size.height),
+            )
+        },
+    )
 }
 
 /** Today's total as a ring + number, with the pace advice underneath. */

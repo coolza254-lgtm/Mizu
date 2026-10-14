@@ -138,7 +138,7 @@ class MizuViewModel(app: Application) : AndroidViewModel(app) {
             remainingMl = (deficit + 400).coerceAtMost(s.goalMl), suggestedMl = 250,
             feasibility = com.example.mizu.core.Feasibility.TIGHT, urgent = false, deficitMl = deficit, level = level,
         )
-        com.example.mizu.reminder.NotificationHelper.show(getApplication(), s.language, content, s.goalMl)
+        com.example.mizu.reminder.NotificationHelper.show(getApplication(), s.language, content, s.goalMl, s.sirenEnabled)
     }
 
     fun fillBottle(id: Long) = viewModelScope.launch { c.repository.fillBottle(id) }

@@ -233,4 +233,8 @@
     <string name="home_left">残り %1$s ml</string>
     <string name="advice_rest_first_d">%1$s ml 飲んだばかり。少し休んで %3$s に %2$s ml、一気飲みは不要 · その後は毎時 約 %4$s ml</string>
     <string name="advice_pace_cap">今日は目標に届かないかもしれません。毎時 600 ml を超えて急がず、無理のない範囲で</string>
+    <string name="siren_mode">サイレン + 赤い警告画面</string>
+    <string name="siren_mode_hint">アラーム時に画面が赤く点滅しサイレンが鳴ります。オフで端末のアラーム音</string>
+    <string name="channel_alarm_siren">アラーム通知 (サイレン)</string>
+    <string name="alarm_danger">水分不足!</string>
 </resources>
