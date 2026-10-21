@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the launcher icon: the same two quick actions as the Quick panel tiles. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:icon="@drawable/ic_shortcut_weigh"
+        android:shortcutId="update_water"
+        android:shortcutShortLabel="@string/tile_update_water">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.example.mizu.MainActivity"
+            android:targetPackage="com.example.mizu">
+            <extra android:name="mizu_open" android:value="weigh" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:icon="@drawable/ic_shortcut_fill"
+        android:shortcutId="fill_bottle"
+        android:shortcutShortLabel="@string/tile_fill_bottle">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.example.mizu.MainActivity"
+            android:targetPackage="com.example.mizu">
+            <extra android:name="mizu_action" android:value="fill" />
+        </intent>
+    </shortcut>
+</shortcuts>
