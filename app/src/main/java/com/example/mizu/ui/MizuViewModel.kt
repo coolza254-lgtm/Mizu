@@ -86,6 +86,7 @@ class MizuViewModel(app: Application) : AndroidViewModel(app) {
     /** Debug builds only (see MainActivity): sample history so screenshots show real-looking data. */
     fun seedDemo() = viewModelScope.launch {
         val today = LocalDate.now()
+        c.settings.update { it.copy(planDate = today) }
         val pattern = listOf(
             8 to 300, 10 to 250, 12 to 500, 14 to 250, 16 to 350, 18 to 300, 20 to 250,
         )
@@ -125,6 +126,10 @@ class MizuViewModel(app: Application) : AndroidViewModel(app) {
         c.settings.update(transform)
         c.scheduler.reschedule()
     }
+
+    /** Today's window from the wake-up / bed times asked on the first open of the day. */
+    fun saveDayPlan(wake: java.time.LocalTime, bed: java.time.LocalTime) =
+        updateSettings { com.example.mizu.core.DayPlan.apply(it, LocalDate.now(), wake, bed) }
 
     /** Shows a sample reminder at [level] so the user can feel each strength. */
     fun testReminder(level: com.example.mizu.core.ReminderLevel) = viewModelScope.launch {

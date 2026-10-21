@@ -204,6 +204,17 @@ private fun MizuShell(vm: MizuViewModel, startScreen: String?, quickRequest: Qui
             }
         }
 
+        // First open of the day: wake-up and bed times plan today's window.
+        val planSettings by vm.settings.collectAsStateWithLifecycle()
+        val now by vm.now.collectAsStateWithLifecycle()
+        val ps = planSettings
+        if (ps != null && com.example.mizu.core.DayPlan.needsPlan(ps, now.toLocalDate())) {
+            DayPlanScreen(ps, now) { wake, bed ->
+                haptics.success()
+                vm.saveDayPlan(wake, bed)
+            }
+        }
+
         ToastHost(
             toast,
             Modifier.navigationBarsPadding().padding(bottom = if (overlay == Overlay.NONE) 96.dp else 92.dp),

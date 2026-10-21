@@ -57,6 +57,11 @@ echo "===== notification service log ====="
 adb logcat -d | grep -iE "NotificationService|NotificationManager|RemoteViews|$PKG" | grep -ivE "uid=|ActivityManager" | tail -40 || true
 
 
+# Day plan (first open of the day): wake-up and bed times.
+adb shell am start -S -W -n $PKG/.MainActivity --ez mizu_plan true
+sleep 6
+adb exec-out screencap -p > "shots/day_plan.png"
+
 sleep 3
 adb logcat -d -b crash > crash.txt
 echo "===== crash buffer ====="

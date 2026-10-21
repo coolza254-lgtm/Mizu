@@ -155,3 +155,31 @@ class DrinkTimeEstimatorTest {
         assertEquals(day.minusDays(1).atTime(20, 0), e.at)
     }
 }
+
+class DayPlanTest {
+    private val today = java.time.LocalDate.of(2026, 10, 21)
+    private fun t(h: Int, m: Int): java.time.LocalTime = java.time.LocalTime.of(h, m)
+
+    @Test
+    fun wakeToAnHourBeforeBed() {
+        val s = DayPlan.apply(MizuSettings(), today, t(6, 30), t(22, 30))
+        assertEquals(t(6, 30), s.reminderStart)
+        assertEquals(t(21, 30), s.reminderEnd)
+        assertEquals(t(22, 30), s.bedTime)
+        assertEquals(today, s.planDate)
+        assertEquals(false, DayPlan.needsPlan(s, today))
+        assertEquals(true, DayPlan.needsPlan(s, today.plusDays(1)))
+    }
+
+    @Test
+    fun bedAfterMidnight_windowEndsAt2359() {
+        val s = DayPlan.apply(MizuSettings(), today, t(9, 0), t(1, 30))
+        assertEquals(t(23, 59), s.reminderEnd)
+    }
+
+    @Test
+    fun tooShortWindow_isWidened() {
+        val s = DayPlan.apply(MizuSettings(), today, t(20, 0), t(21, 0))
+        assertEquals(t(22, 0), s.reminderEnd) // at least 2 h
+    }
+}

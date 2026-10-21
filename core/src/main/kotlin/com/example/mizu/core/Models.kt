@@ -1,5 +1,6 @@
 package com.example.mizu.core
 
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
@@ -74,6 +75,11 @@ data class MizuSettings(
     val alarmEnabled: Boolean = true,
     /** Alarm level: red alert screen with a siren (false = the system alarm sound). */
     val sirenEnabled: Boolean = true,
+    // ---- day plan (asked on the first open of each day) ----
+    /** The day the wake / bed times were last entered; null = never. */
+    val planDate: LocalDate? = null,
+    /** Expected bedtime last entered (reminders end [DayPlan.QUIET_BEFORE_BED_MIN] before it). */
+    val bedTime: LocalTime = LocalTime.of(23, 0),
     val alarmDeficitMl: Int = 800,
 ) {
     /** The goal actually in effect for the chosen [goalMode]. */

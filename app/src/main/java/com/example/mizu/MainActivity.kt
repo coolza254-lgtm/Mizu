@@ -32,6 +32,10 @@ class MainActivity : ComponentActivity() {
                 goalMl = 2100,
             )
         }
+        if (BuildConfig.DEBUG && intent.getBooleanExtra("mizu_plan", false)) {
+            // CI: show the day-plan screen again.
+            kotlinx.coroutines.runBlocking { container.settings.update { it.copy(planDate = null) } }
+        }
         if (BuildConfig.DEBUG && intent.getBooleanExtra("mizu_alarm", false)) {
             // Sample alarm-level reminder so CI can screenshot the full-screen alarm.
             startActivity(

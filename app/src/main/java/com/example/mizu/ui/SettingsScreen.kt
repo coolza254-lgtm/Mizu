@@ -618,7 +618,7 @@ private fun BottleSheet(
 }
 
 @Composable
-private fun TimeDialog(initial: LocalTime, onConfirm: (LocalTime) -> Unit, onDismiss: () -> Unit) {
+internal fun TimeDialog(initial: LocalTime, onConfirm: (LocalTime) -> Unit, onDismiss: () -> Unit) {
     val state = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = true)
     // Read outside: the dialog's own window would answer in the device language, not the in-app one.
     val saveText = stringResource(R.string.save)

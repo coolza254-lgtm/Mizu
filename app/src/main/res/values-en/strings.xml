@@ -239,4 +239,11 @@
     <string name="alarm_danger">Dehydration alert!</string>
     <string name="over_apps_permission">Full screen while using the phone</string>
     <string name="over_apps_permission_hint">Tap and allow “Display over other apps”. Without it the alarm only fills the screen while locked; in use it is a banner</string>
+    <string name="plan_title">Start your day ☀️</string>
+    <string name="plan_subtitle">When did you wake up, and when do you expect to sleep? Mizu plans today\'s drinking around it</string>
+    <string name="plan_wake">Woke up</string>
+    <string name="plan_bed">Bedtime</string>
+    <string name="plan_window">Reminders %1$s – %2$s (stop 1 h before bed)</string>
+    <string name="plan_pace">Today\'s goal %1$s ml · about %2$s ml/h</string>
+    <string name="plan_start">Start today</string>
 </resources>
