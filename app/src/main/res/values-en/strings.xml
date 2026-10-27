@@ -249,4 +249,8 @@
     <string name="plan_start">Start today</string>
     <string name="home_left_today">Left to drink today</string>
     <string name="weigh_refill_full">Fill to %1$s ml</string>
+    <string name="advice_pill_drink">Drink %1$s ml</string>
+    <string name="advice_pill_rest">Rest first</string>
+    <string name="advice_pill_by">by %1$s</string>
+    <string name="advice_pill_resume">Next at %1$s</string>
 </resources>

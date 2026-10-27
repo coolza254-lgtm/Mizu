@@ -11,6 +11,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -144,6 +145,7 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
             remaining = remaining,
             consumed = consumed,
             goal = goal,
+            advice = advice,
             unit = unit,
             bottomPadding = bottomPadding,
             onBottleClick = onWeigh,
@@ -193,7 +195,11 @@ internal fun currentBottle(bottles: List<Bottle>): Bottle? =
 
 /** Home: only the bottle, filling with the day's water, and how much is left to drink. Tap the bottle to weigh it. */
 @Composable
-private fun MinimalHome(remaining: Int, consumed: Int, goal: Int, unit: String, bottomPadding: Dp, onBottleClick: () -> Unit) {
+private fun MinimalHome(remaining: Int, consumed: Int, goal: Int, advice: PaceAdvice, unit: String, bottomPadding: Dp, onBottleClick: () -> Unit) {
+    val showPlan = advice.state in setOf(PaceState.BEHIND, PaceState.BEHIND_FAR, PaceState.ON_TRACK, PaceState.AHEAD) && goal > 0
+    val planLevel = if (goal > 0) (advice.expectedMl / goal.toFloat()).coerceIn(0f, 1f) else 0f
+    val behind = advice.state == PaceState.BEHIND || advice.state == PaceState.BEHIND_FAR
+    val planColor = if (behind) MizuColors.Warn else MizuColors.WaterDeep
     val level by animateFloatAsState(GoalCalculator.progress(consumed, goal), tween(900, easing = FastOutSlowInEasing), label = "level")
     val phase by rememberInfiniteTransition(label = "wave").animateFloat(
         initialValue = 0f,
@@ -243,6 +249,21 @@ private fun MinimalHome(remaining: Int, consumed: Int, goal: Int, unit: String, 
                 }
                 drawRoundRect(Color.White.copy(alpha = 0.75f), Offset(0.22f * w, 0.22f * h), Size(0.04f * w, 0.38f * h), CornerRadius(0.02f * w))
                 drawPath(body, MizuColors.Ink, style = Stroke(width = 5.dp.toPx()))
+                // where the even pace says the water should be by now, and the gap to the real level
+                if (showPlan) {
+                    val planY = bodyBottom - (bodyBottom - bodyTop) * planLevel
+                    drawLine(
+                        planColor, Offset(-0.10f * w, planY), Offset(1.10f * w, planY), strokeWidth = 3.dp.toPx(),
+                        cap = StrokeCap.Round, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10.dp.toPx(), 6.dp.toPx())),
+                    )
+                    drawCircle(planColor, 5.dp.toPx(), Offset(1.10f * w, planY))
+                    if (kotlin.math.abs(waterY - planY) > 6.dp.toPx()) {
+                        val bx = -0.14f * w
+                        drawLine(planColor, Offset(bx, planY), Offset(bx, waterY), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
+                        drawLine(planColor, Offset(bx, planY), Offset(bx + 0.05f * w, planY), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
+                        drawLine(planColor, Offset(bx, waterY), Offset(bx + 0.05f * w, waterY), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
+                    }
+                }
                 // lid
                 drawRoundRect(Color(0xFF2B3440), Offset(0.37f * w, 0.0f), Size(0.26f * w, 0.06f * h), CornerRadius(0.03f * h))
                 drawRoundRect(Color(0xFF3A414B), Offset(0.05f * w, 0.04f * h), Size(0.9f * w, 0.10f * h), CornerRadius(0.03f * h))
@@ -259,6 +280,41 @@ private fun MinimalHome(remaining: Int, consumed: Int, goal: Int, unit: String, 
                 drawCircle(Color(0xFFF4A6A6).copy(alpha = 0.75f), 0.045f * w, Offset(0.71f * w, 0.835f * h))
             }
         }
+        Spacer(Modifier.height(16.dp))
+        AdvicePill(advice)
+    }
+}
+
+/** One line of advice under the bottle: what to drink now (or to rest), and by when. */
+@Composable
+private fun AdvicePill(a: PaceAdvice) {
+    val by = a.byTime?.format(TIME_FORMAT) ?: "—"
+    val drinkNow = a.drinkNowMl > 0
+    val headline = when {
+        a.state == PaceState.REACHED || a.state == PaceState.OVER_GOAL -> stringResource(R.string.goal_reached)
+        a.state == PaceState.AHEAD || a.state == PaceState.TOO_FAST || !drinkNow -> stringResource(R.string.advice_pill_rest)
+        else -> stringResource(R.string.advice_pill_drink, a.drinkNowMl.grouped())
+    }
+    val sub = when {
+        a.state == PaceState.REACHED || a.state == PaceState.OVER_GOAL -> null
+        a.state == PaceState.AHEAD || a.state == PaceState.TOO_FAST || !drinkNow -> stringResource(R.string.advice_pill_resume, by)
+        a.state == PaceState.BEHIND || a.state == PaceState.BEHIND_FAR ->
+            stringResource(R.string.advice_behind_t, (-a.gapMl).grouped()) + " · " +
+                stringResource(if (a.restFirst) R.string.advice_pill_resume else R.string.advice_pill_by, by)
+        a.byTime == null -> null
+        else -> stringResource(R.string.advice_pill_by, by)
+    }
+    val (background, accent) = when (a.state) {
+        PaceState.BEHIND, PaceState.BEHIND_FAR, PaceState.TOO_FAST, PaceState.OVER_GOAL -> MizuColors.WarnSoft to MizuColors.Warn
+        PaceState.ON_TRACK, PaceState.REACHED -> MizuColors.GoodSoft to MizuColors.Good
+        else -> MizuColors.Foam to MizuColors.WaterDeep
+    }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(background).padding(horizontal = 20.dp, vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(headline, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = accent)
+        if (sub != null) Text(sub, style = MaterialTheme.typography.bodyMedium, color = MizuColors.InkSoft)
     }
 }
 

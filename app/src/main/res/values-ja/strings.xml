@@ -249,4 +249,8 @@
     <string name="plan_start">今日を始める</string>
     <string name="home_left_today">今日の残り</string>
     <string name="weigh_refill_full">%1$s ml まで満タン</string>
+    <string name="advice_pill_drink">%1$s ml 飲む</string>
+    <string name="advice_pill_rest">少し休憩</string>
+    <string name="advice_pill_by">%1$sまでに</string>
+    <string name="advice_pill_resume">%1$sに再開</string>
 </resources>

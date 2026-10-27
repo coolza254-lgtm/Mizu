@@ -249,4 +249,8 @@
     <string name="plan_start">เริ่มวันนี้</string>
     <string name="home_left_today">วันนี้เหลืออีก</string>
     <string name="weigh_refill_full">เติมเต็ม %1$s ml</string>
+    <string name="advice_pill_drink">ดื่ม %1$s ml</string>
+    <string name="advice_pill_rest">พักก่อน</string>
+    <string name="advice_pill_by">ภายใน %1$s</string>
+    <string name="advice_pill_resume">ดื่มต่อตอน %1$s</string>
 </resources>
