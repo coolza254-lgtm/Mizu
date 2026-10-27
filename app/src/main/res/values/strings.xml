@@ -248,4 +248,5 @@
     <string name="plan_pace">เป้าวันนี้ %1$s ml · ราว %2$s ml/ชม.</string>
     <string name="plan_start">เริ่มวันนี้</string>
     <string name="home_left_today">วันนี้เหลืออีก</string>
+    <string name="weigh_refill_full">เติมเต็ม %1$s ml</string>
 </resources>

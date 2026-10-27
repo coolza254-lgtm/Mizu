@@ -71,6 +71,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
     var selectedId by rememberSaveable { mutableStateOf<Long?>(null) }
     var weightText by rememberSaveable { mutableStateOf("") }
     var askRefill by remember { mutableStateOf<WeighOutcome.AskRefill?>(null) }
+    var askFill by remember { mutableStateOf(false) }
 
     val bottle = bottles.firstOrNull { it.id == selectedId }
         ?: bottles.maxByOrNull { it.waterUpdatedAt ?: java.time.LocalDateTime.MIN }
@@ -94,6 +95,19 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
         haptics.success()
         if (result is WeighOutcome.Drink) sounds.drop() else sounds.fill()
         vm.commitWeigh(b.id, result)
+        weightText = ""
+    }
+
+    val filledText = stringResource(R.string.toast_filled)
+
+    /** One tap (after the confirmation): the bottle is full to its remembered capacity, no weighing, no log. */
+    fun fillFull() {
+        val b = bottle ?: return
+        val cap = b.capacityMl ?: return
+        vm.fillBottle(b.id)
+        toast.show(String.format(filledText, cap.grouped()))
+        haptics.success()
+        sounds.fill()
         weightText = ""
     }
 
@@ -162,7 +176,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
                 BottleGauge(
                     previousWater = bottle.currentWaterG,
                     newWater = newWater,
-                    modifier = Modifier.size(width = 62.dp, height = 128.dp),
+                    modifier = Modifier.size(width = 78.dp, height = 160.dp),
                     capacityMl = bottle.capacityMl?.let { maxOf(it, newWater ?: 0) },
                 )
             }
@@ -171,7 +185,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
                 onDigit = { d -> weightText = weightText.pushDigit(d, 5) },
                 onBackspace = { weightText = weightText.dropLast(1) },
                 modifier = Modifier.padding(horizontal = 20.dp),
-                keyHeight = 50.dp,
+                keyHeight = 64.dp,
             )
         }
 
@@ -179,10 +193,14 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
             Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            val capacity = bottle.capacityMl
             SoftButton(
-                stringResource(R.string.refilled),
-                onClick = { if (newWater != null) finish(WeighOutcome.SetBaseline(newWater)) },
-                enabled = newWater != null,
+                if (capacity != null) stringResource(R.string.weigh_refill_full, capacity.grouped()) else stringResource(R.string.refilled),
+                onClick = {
+                    if (capacity != null) askFill = true
+                    else if (newWater != null) finish(WeighOutcome.SetBaseline(newWater))
+                },
+                enabled = capacity != null || newWater != null,
                 icon = Icons.Rounded.Autorenew,
                 haptic = HapticKind.NONE,
             )
@@ -199,6 +217,16 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
                 icon = Icons.Rounded.Check,
                 modifier = Modifier.weight(1f),
                 haptic = HapticKind.NONE,
+            )
+        }
+    }
+
+    if (askFill) {
+        bottle?.let { b ->
+            FillConfirmSheet(
+                bottle = b,
+                onConfirm = { askFill = false; fillFull() },
+                onDismiss = { askFill = false },
             )
         }
     }

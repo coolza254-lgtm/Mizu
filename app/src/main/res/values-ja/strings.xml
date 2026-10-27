@@ -248,4 +248,5 @@
     <string name="plan_pace">今日の目標 %1$s ml · 毎時 約 %2$s ml</string>
     <string name="plan_start">今日を始める</string>
     <string name="home_left_today">今日の残り</string>
+    <string name="weigh_refill_full">%1$s ml まで満タン</string>
 </resources>
