@@ -85,15 +85,11 @@ class MizuRepository(
             is WeighOutcome.SetBaseline -> dao.updateBottle(filled(outcome.waterG))
             is WeighOutcome.AskRefill -> dao.updateBottle(filled(outcome.newWaterG))
             is WeighOutcome.Drink -> db.withTransaction {
-                // The water went down some time since the last weighing: log it at the estimated midpoint.
-                val estimate = DrinkTimeEstimator.estimate(
-                    bottle.waterUpdatedAt?.toLocalDateTime(), at, settings.settings.first(),
-                )
+                // The drink is weighed right after drinking: it happened now, not spread over the time since the last weighing.
                 dao.insertLog(
                     DrinkLogEntity(
-                        timestamp = estimate.at.toEpochMs(), amountMl = outcome.amountMl, source = DrinkSource.WEIGH.name,
+                        timestamp = stamp, amountMl = outcome.amountMl, source = DrinkSource.WEIGH.name,
                         bottleId = bottleId, weightBeforeG = outcome.weightBeforeG, weightAfterG = outcome.weightAfterG,
-                        estimatedFromMs = estimate.from?.toEpochMs(),
                     ),
                 )
                 dao.updateBottle(bottle.copy(currentWaterG = outcome.newWaterG, waterUpdatedAt = stamp))

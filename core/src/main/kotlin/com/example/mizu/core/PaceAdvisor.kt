@@ -53,8 +53,29 @@ data class PaceAdvice(
 }
 
 object PaceAdvisor {
-    /** Roughly what kidneys clear per hour; more than this within an hour is "too fast". */
-    const val MAX_ML_PER_HOUR = 1000
+    /**
+     * Healthy kidneys clear roughly 0.8-1 L of water per hour; drinking more than that for a while risks
+     * hyponatremia (symptoms usually after 3-4 L within a few hours). The low end is used, to stay on the safe side.
+     */
+    const val MAX_ML_PER_HOUR = 800
+
+    /** Within any 3 hours: well under the 3-4 L at which symptoms begin. */
+    const val MAX_ML_PER_3_HOURS = 2000
+
+    /** When the drinks in the last [window] fall below [limit] again, or null if they are already under it at [now]. */
+    private fun restUntil(now: LocalDateTime, logs: List<DrinkLog>, window: Duration, limit: Int): LocalDateTime? {
+        val from = now.minus(window)
+        val recent = logs.filter { it.timestamp.isAfter(from) && !it.timestamp.isAfter(now) }.sortedBy { it.timestamp }
+        var sum = recent.sumOf { it.amountMl }
+        if (sum < limit) return null
+        var until = now
+        for (log in recent) {
+            if (sum < limit) break
+            sum -= log.amountMl
+            until = log.timestamp.plus(window)
+        }
+        return until
+    }
 
     /** The body takes up water comfortably at about this rate; recent drinks "settle" at this speed. */
     const val COMFORT_ML_PER_HOUR = 600
@@ -133,17 +154,12 @@ object PaceAdvisor {
             }
         }
 
-        if (lastHourMl >= MAX_ML_PER_HOUR) {
-            // Rest until enough of the last hour's drinks fall out of the window to be under the limit.
-            var sum = lastHourMl
-            var until = now
-            for (log in lastHour.sortedBy { it.timestamp }) {
-                if (sum < MAX_ML_PER_HOUR) break
-                sum -= log.amountMl
-                until = log.timestamp.plusHours(1)
-            }
-            return advice(PaceState.TOO_FAST, by = until)
-        }
+        // Too much in a short time (the water kidneys can clear is limited): rest until enough drinks fall out of the window.
+        val rest = listOfNotNull(
+            restUntil(now, todayLogs, Duration.ofHours(1), MAX_ML_PER_HOUR),
+            restUntil(now, todayLogs, Duration.ofHours(3), MAX_ML_PER_3_HOURS),
+        ).maxOrNull()
+        if (rest != null) return advice(PaceState.TOO_FAST, by = rest)
         if (goal <= 0) return advice(PaceState.ON_TRACK)
         if (consumed >= goal * OVER_GOAL_FACTOR) return advice(PaceState.OVER_GOAL)
         if (consumed >= goal) return advice(PaceState.REACHED)

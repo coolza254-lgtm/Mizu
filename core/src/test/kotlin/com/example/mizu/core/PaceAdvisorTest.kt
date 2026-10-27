@@ -105,6 +105,13 @@ class PaceAdvisorTest {
     }
 
     @Test
+    fun tooMuchInThreeHours_restsEvenWhenEachHourIsFine() {
+        val a = advise(at(14, 30), log(at(12, 10), 700), log(at(13, 10), 700), log(at(14, 10), 700))
+        assertEquals(PaceState.TOO_FAST, a.state)
+        assertEquals(at(15, 10), a.byTime)
+    }
+
+    @Test
     fun tooFast_winsEvenAfterTheGoal() {
         val a = advise(at(20), log(at(12), 1200), log(at(19, 30), 1000))
         assertEquals(PaceState.TOO_FAST, a.state)
