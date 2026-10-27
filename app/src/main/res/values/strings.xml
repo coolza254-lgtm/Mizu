@@ -247,4 +247,5 @@
     <string name="quiet_before_bed">หยุดเตือนก่อนนอน</string>
     <string name="plan_pace">เป้าวันนี้ %1$s ml · ราว %2$s ml/ชม.</string>
     <string name="plan_start">เริ่มวันนี้</string>
+    <string name="home_left_today">วันนี้เหลืออีก</string>
 </resources>

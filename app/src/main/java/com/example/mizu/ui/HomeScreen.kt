@@ -5,7 +5,20 @@ package com.example.mizu.ui
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import kotlin.math.PI
+import kotlin.math.sin
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -127,85 +140,15 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
     // Far behind (with the red alert setting on): the screen edges pulse red, like a warning light.
     val alert = s.sirenEnabled && advice.state == PaceState.BEHIND_FAR
     Box(Modifier.fillMaxSize()) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = bottomPadding),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item { HeroTile(consumed, goal, remaining, advice) }
-        item {
-            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                BottleTile(
-                    bottle = bottle,
-                    forecast = bottle?.let { BottlePlanner.forecast(it, now, s, logs) },
-                    onWeigh = onWeigh,
-                    onFill = { confirmFill = it },
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                )
-                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    InfoTile(stringResource(R.string.next_reminder), reminderValue, reminderSub, Modifier.weight(1f).fillMaxWidth())
-                    InfoTile(
-                        stringResource(R.string.stat_streak),
-                        streak.toString(),
-                        stringResource(R.string.home_drinks_today, todayLogs.size),
-                        Modifier.weight(1f).fillMaxWidth(),
-                        suffix = stringResource(R.string.unit_days),
-                    )
-                }
-            }
-        }
-        item {
-            GlassCard(padding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        stringResource(R.string.home_timeline, todayLogs.size),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MizuColors.InkFaint,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    PaceLegend(stringResource(R.string.chart_actual), stringResource(R.string.chart_pace))
-                }
-                PaceChart(
-                    logs = todayLogs,
-                    start = s.reminderStart,
-                    end = s.reminderEnd,
-                    now = now,
-                    goalMl = goal,
-                    goalLabel = stringResource(R.string.chart_goal, goal.grouped()),
-                    modifier = Modifier.fillMaxWidth().height(150.dp),
-                )
-            }
-        }
-        item {
-            SectionLabel(stringResource(R.string.today_log)) {
-                Pill(
-                    "+ " + stringResource(R.string.manual_add),
-                    Modifier.bouncyClick(haptic = HapticKind.TICK) { sheet = AmountSheetTarget.New },
-                    background = Color.White,
-                    color = MizuColors.WaterDeep,
-                )
-            }
-            if (todayLogs.isNotEmpty()) {
-                Text(stringResource(R.string.swipe_hint), style = MaterialTheme.typography.labelSmall, color = MizuColors.InkFaint, modifier = Modifier.padding(start = 4.dp))
-            }
-        }
-        if (todayLogs.isEmpty()) {
-            item { EmptyToday() }
-        } else {
-            itemsIndexed(todayLogs, key = { _, log -> log.id }) { index, log ->
-                SwipeableLogRow(
-                    log = log,
-                    isFirst = index == 0,
-                    isLast = index == todayLogs.lastIndex,
-                    onClick = { sheet = AmountSheetTarget.Edit(log) },
-                    onDelete = { delete(log) },
-                )
-            }
-        }
-    }
-    if (alert) AlertGlow(Modifier.matchParentSize())
+        MinimalHome(
+            remaining = remaining,
+            consumed = consumed,
+            goal = goal,
+            unit = unit,
+            bottomPadding = bottomPadding,
+            onBottleClick = onWeigh,
+        )
+        if (alert) AlertGlow(Modifier.matchParentSize())
     }
 
     confirmFill?.let { b ->
@@ -247,6 +190,77 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
 /** The bottle the dashboard, the refill tile and the shortcut talk about: the active one weighed most recently. */
 internal fun currentBottle(bottles: List<Bottle>): Bottle? =
     bottles.filter { it.isActive }.maxByOrNull { it.waterUpdatedAt ?: LocalDateTime.MIN }
+
+/** Home: only the bottle, filling with the day's water, and how much is left to drink. Tap the bottle to weigh it. */
+@Composable
+private fun MinimalHome(remaining: Int, consumed: Int, goal: Int, unit: String, bottomPadding: Dp, onBottleClick: () -> Unit) {
+    val level by animateFloatAsState(GoalCalculator.progress(consumed, goal), tween(900, easing = FastOutSlowInEasing), label = "level")
+    val phase by rememberInfiniteTransition(label = "wave").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(3200, easing = LinearEasing), RepeatMode.Restart),
+        label = "phase",
+    )
+    Column(
+        Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = bottomPadding),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(stringResource(R.string.home_left_today), style = MaterialTheme.typography.titleMedium, color = MizuColors.InkSoft)
+        Text(remaining.grouped(), fontSize = 92.sp, lineHeight = 100.sp, fontWeight = FontWeight.Bold, color = MizuColors.Ink)
+        Text(unit, style = MaterialTheme.typography.titleLarge, color = MizuColors.WaterDeep)
+        Spacer(Modifier.height(20.dp))
+        Canvas(Modifier.weight(1f).fillMaxWidth().bouncyClick(haptic = HapticKind.TICK) { onBottleClick() }) {
+            val h = minOf(size.height, size.width * 1.9f)
+            val w = h / 1.9f
+            translate(left = (size.width - w) / 2f, top = (size.height - h) / 2f) {
+                val bodyTop = 0.14f * h
+                val bodyBottom = 0.98f * h
+                val body = Path().apply {
+                    moveTo(0.12f * w, bodyTop)
+                    lineTo(0.88f * w, bodyTop)
+                    lineTo(0.84f * w, 0.93f * h)
+                    quadraticBezierTo(0.835f * w, bodyBottom, 0.76f * w, bodyBottom)
+                    lineTo(0.24f * w, bodyBottom)
+                    quadraticBezierTo(0.165f * w, bodyBottom, 0.16f * w, 0.93f * h)
+                    close()
+                }
+                val waterY = bodyBottom - (bodyBottom - bodyTop) * level
+                fun wave(offset: Float, amp: Float) = Path().apply {
+                    moveTo(0f, waterY)
+                    var x = 0f
+                    while (x <= w) {
+                        lineTo(x, waterY + amp * sin(x / w * 3f * PI.toFloat() + (phase + offset) * 2f * PI.toFloat()))
+                        x += 6f
+                    }
+                    lineTo(w, h)
+                    lineTo(0f, h)
+                    close()
+                }
+                drawPath(body, Color.White)
+                clipPath(body) {
+                    drawPath(wave(0.3f, 0.012f * h), MizuColors.Aqua)
+                    drawPath(wave(0f, 0.014f * h), MizuColors.Water)
+                }
+                drawRoundRect(Color.White.copy(alpha = 0.75f), Offset(0.22f * w, 0.22f * h), Size(0.04f * w, 0.38f * h), CornerRadius(0.02f * w))
+                drawPath(body, MizuColors.Ink, style = Stroke(width = 5.dp.toPx()))
+                // lid
+                drawRoundRect(Color(0xFF2B3440), Offset(0.37f * w, 0.0f), Size(0.26f * w, 0.06f * h), CornerRadius(0.03f * h))
+                drawRoundRect(Color(0xFF3A414B), Offset(0.05f * w, 0.04f * h), Size(0.9f * w, 0.10f * h), CornerRadius(0.03f * h))
+                // face
+                val eyeR = 0.028f * w
+                drawCircle(MizuColors.Ink, eyeR, Offset(0.38f * w, 0.80f * h))
+                drawCircle(MizuColors.Ink, eyeR, Offset(0.62f * w, 0.80f * h))
+                drawArc(
+                    MizuColors.Ink, startAngle = 20f, sweepAngle = 140f, useCenter = false,
+                    topLeft = Offset(0.42f * w, 0.79f * h), size = Size(0.16f * w, 0.07f * h),
+                    style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round),
+                )
+                drawCircle(Color(0xFFF4A6A6).copy(alpha = 0.75f), 0.045f * w, Offset(0.29f * w, 0.835f * h))
+                drawCircle(Color(0xFFF4A6A6).copy(alpha = 0.75f), 0.045f * w, Offset(0.71f * w, 0.835f * h))
+            }
+        }
+    }
+}
 
 @Composable
 private fun durationText(minutes: Long): String {
