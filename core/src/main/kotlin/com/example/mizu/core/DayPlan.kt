@@ -5,11 +5,9 @@ import java.time.LocalTime
 
 /**
  * Today's drinking window from the wake-up and expected bed times entered when the app is first opened each day:
- * reminders start at wake-up and stop [QUIET_BEFORE_BED_MIN] before bed, so the goal is not pushed right before sleep.
+ * reminders start at wake-up and stop [MizuSettings.quietBeforeBedMin] before bed, so the goal is not pushed right before sleep.
  */
 object DayPlan {
-    const val QUIET_BEFORE_BED_MIN = 180L
-
     /** Shortest window that still makes sense; a later bed time is pushed out to give at least this. */
     const val MIN_WINDOW_MIN = 120L
 
@@ -23,7 +21,7 @@ object DayPlan {
         val wakeMin = wake.toSecondOfDay() / 60L
         val bedMin = (bed.toSecondOfDay() / 60L).let { if (it <= wakeMin) it + 24 * 60 else it }
         val lastMin = 23 * 60L + 59
-        val endMin = (bedMin - QUIET_BEFORE_BED_MIN).coerceAtLeast(wakeMin + MIN_WINDOW_MIN).coerceAtMost(lastMin)
+        val endMin = (bedMin - settings.quietBeforeBedMin).coerceAtLeast(wakeMin + MIN_WINDOW_MIN).coerceAtMost(lastMin)
         val startMin = wakeMin.coerceAtMost(endMin - 1)
         return settings.copy(
             reminderStart = LocalTime.of((startMin / 60).toInt(), (startMin % 60).toInt()),

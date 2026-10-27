@@ -53,6 +53,7 @@ class SettingsRepository(context: Context) {
         val sirenEnabled = booleanPreferencesKey("siren_enabled")
         val planDate = longPreferencesKey("plan_epoch_day")
         val bedTime = intPreferencesKey("bed_time_min")
+        val quietBeforeBed = intPreferencesKey("quiet_before_bed_min")
         val alarmDeficit = intPreferencesKey("alarm_deficit_ml")
         val lastReminder = longPreferencesKey("last_reminder_ms")
         val snoozeUntil = longPreferencesKey("snooze_until_ms")
@@ -97,6 +98,7 @@ class SettingsRepository(context: Context) {
             val plan = next.planDate
             if (plan == null) prefs.remove(Keys.planDate) else prefs[Keys.planDate] = plan.toEpochDay()
             prefs[Keys.bedTime] = next.bedTime.toSecondOfDay() / 60
+            prefs[Keys.quietBeforeBed] = next.quietBeforeBedMin
             prefs[Keys.alarmDeficit] = next.alarmDeficitMl
         }
     }
@@ -147,6 +149,7 @@ class SettingsRepository(context: Context) {
             sirenEnabled = this[Keys.sirenEnabled] ?: d.sirenEnabled,
             planDate = this[Keys.planDate]?.let { LocalDate.ofEpochDay(it) },
             bedTime = this[Keys.bedTime]?.let { LocalTime.of(it / 60, it % 60) } ?: d.bedTime,
+            quietBeforeBedMin = this[Keys.quietBeforeBed] ?: d.quietBeforeBedMin,
             alarmDeficitMl = this[Keys.alarmDeficit] ?: d.alarmDeficitMl,
         )
     }

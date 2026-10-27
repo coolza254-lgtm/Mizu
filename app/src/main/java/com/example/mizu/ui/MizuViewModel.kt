@@ -127,6 +127,13 @@ class MizuViewModel(app: Application) : AndroidViewModel(app) {
         c.scheduler.reschedule()
     }
 
+    /** Changing the quiet period also re-plans today's window (if today's plan was already made). */
+    fun setQuietBeforeBed(min: Int) = updateSettings { cur ->
+        val next = cur.copy(quietBeforeBedMin = min)
+        val today = LocalDate.now()
+        if (next.planDate == today) com.example.mizu.core.DayPlan.apply(next, today, cur.reminderStart, cur.bedTime) else next
+    }
+
     /** Today's window from the wake-up / bed times asked on the first open of the day. */
     fun saveDayPlan(wake: java.time.LocalTime, bed: java.time.LocalTime) =
         updateSettings { com.example.mizu.core.DayPlan.apply(it, LocalDate.now(), wake, bed) }

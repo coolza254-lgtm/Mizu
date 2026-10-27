@@ -243,7 +243,8 @@
     <string name="plan_subtitle">วันนี้ตื่นกี่โมง และคาดว่าจะนอนกี่โมง Mizu จะวางแผนการดื่มน้ำให้ทั้งวัน</string>
     <string name="plan_wake">ตื่นนอน</string>
     <string name="plan_bed">คาดว่าจะนอน</string>
-    <string name="plan_window">เตือน %1$s – %2$s (หยุด 3 ชม. ก่อนนอน)</string>
+    <string name="plan_window">เตือน %1$s – %2$s (หยุด %3$s ก่อนนอน)</string>
+    <string name="quiet_before_bed">หยุดเตือนก่อนนอน</string>
     <string name="plan_pace">เป้าวันนี้ %1$s ml · ราว %2$s ml/ชม.</string>
     <string name="plan_start">เริ่มวันนี้</string>
 </resources>

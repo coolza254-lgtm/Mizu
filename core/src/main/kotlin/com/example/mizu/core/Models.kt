@@ -78,8 +78,10 @@ data class MizuSettings(
     // ---- day plan (asked on the first open of each day) ----
     /** The day the wake / bed times were last entered; null = never. */
     val planDate: LocalDate? = null,
-    /** Expected bedtime last entered (reminders end [DayPlan.QUIET_BEFORE_BED_MIN] before it). */
+    /** Expected bedtime last entered (reminders end [quietBeforeBedMin] before it). */
     val bedTime: LocalTime = LocalTime.of(23, 0),
+    /** Minutes before [bedTime] when reminders stop, so the goal is not pushed right before sleep. */
+    val quietBeforeBedMin: Int = 180,
     val alarmDeficitMl: Int = 800,
 ) {
     /** The goal actually in effect for the chosen [goalMode]. */

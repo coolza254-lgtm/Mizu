@@ -243,7 +243,8 @@
     <string name="plan_subtitle">When did you wake up, and when do you expect to sleep? Mizu plans today\'s drinking around it</string>
     <string name="plan_wake">Woke up</string>
     <string name="plan_bed">Bedtime</string>
-    <string name="plan_window">Reminders %1$s – %2$s (stop 3 h before bed)</string>
+    <string name="plan_window">Reminders %1$s – %2$s (stop %3$s before bed)</string>
+    <string name="quiet_before_bed">Stop reminders before bed</string>
     <string name="plan_pace">Today\'s goal %1$s ml · about %2$s ml/h</string>
     <string name="plan_start">Start today</string>
 </resources>

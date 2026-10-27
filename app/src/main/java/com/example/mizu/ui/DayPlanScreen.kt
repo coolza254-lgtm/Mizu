@@ -87,7 +87,12 @@ fun DayPlanScreen(settings: MizuSettings, now: LocalDateTime, onSave: (wake: Loc
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                stringResource(R.string.plan_window, plan.reminderStart.format(TIME_FORMAT), plan.reminderEnd.format(TIME_FORMAT)),
+                stringResource(
+                    R.string.plan_window,
+                    plan.reminderStart.format(TIME_FORMAT),
+                    plan.reminderEnd.format(TIME_FORMAT),
+                    "${settings.quietBeforeBedMin} ${stringResource(R.string.unit_min)}",
+                ),
                 style = MaterialTheme.typography.titleMedium,
                 color = MizuColors.WaterDeep,
             )

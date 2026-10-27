@@ -172,6 +172,12 @@ class DayPlanTest {
     }
 
     @Test
+    fun customQuietPeriod_movesTheEnd() {
+        val s = DayPlan.apply(MizuSettings(quietBeforeBedMin = 60), today, t(6, 30), t(22, 30))
+        assertEquals(t(21, 30), s.reminderEnd)
+    }
+
+    @Test
     fun bedAfterMidnight_windowEndsAt2359() {
         val s = DayPlan.apply(MizuSettings(), today, t(9, 0), t(4, 0))
         assertEquals(t(23, 59), s.reminderEnd)

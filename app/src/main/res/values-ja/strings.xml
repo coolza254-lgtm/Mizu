@@ -243,7 +243,8 @@
     <string name="plan_subtitle">今日の起床時間と就寝予定を教えてください。一日の水分補給を計画します</string>
     <string name="plan_wake">起床</string>
     <string name="plan_bed">就寝予定</string>
-    <string name="plan_window">通知 %1$s – %2$s (就寝3時間前まで)</string>
+    <string name="plan_window">通知 %1$s – %2$s (就寝%3$s前まで)</string>
+    <string name="quiet_before_bed">就寝前は通知を止める</string>
     <string name="plan_pace">今日の目標 %1$s ml · 毎時 約 %2$s ml</string>
     <string name="plan_start">今日を始める</string>
 </resources>

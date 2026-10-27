@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LocalDrink
 import androidx.compose.material.icons.rounded.MonitorWeight
@@ -93,7 +94,7 @@ private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
 /** Which number is being edited in the shared number sheet. */
 private enum class NumberField {
     WEIGHT, GOAL, QUICK_1, QUICK_2, QUICK_3, SNOOZE, EMPTY_WEIGHT,
-    BASE_INTERVAL, MIN_INTERVAL, ESCALATION, STRONG_DEFICIT, DRY_MINUTES, ALARM_DEFICIT,
+    BASE_INTERVAL, MIN_INTERVAL, ESCALATION, STRONG_DEFICIT, DRY_MINUTES, ALARM_DEFICIT, QUIET_BEFORE_BED,
 }
 
 private enum class TimeTarget { START, END }
@@ -177,6 +178,12 @@ fun SettingsScreen(vm: MizuViewModel, onExport: () -> Unit, bottomPadding: Dp) {
             SettingsRow(Icons.Rounded.WbTwilight, stringResource(R.string.reminder_start), value = s.reminderStart.format(HHMM), onClick = { timeTarget = TimeTarget.START })
             RowDivider()
             SettingsRow(Icons.Rounded.Schedule, stringResource(R.string.reminder_end), value = s.reminderEnd.format(HHMM), onClick = { timeTarget = TimeTarget.END })
+            RowDivider()
+            SettingsRow(
+                Icons.Rounded.Bedtime, stringResource(R.string.quiet_before_bed),
+                value = "${s.quietBeforeBedMin} ${stringResource(R.string.unit_min)}",
+                onClick = { editing = NumberField.QUIET_BEFORE_BED },
+            )
             if (!s.reminderEnd.isAfter(s.reminderStart)) {
                 Text(
                     stringResource(R.string.window_invalid),
@@ -505,6 +512,7 @@ private fun SettingNumberSheet(field: NumberField, s: MizuSettings, ml: String, 
         NumberField.STRONG_DEFICIT -> Quad(stringResource(R.string.strong_at), s.strongDeficitMl, 100..5000, ml)
         NumberField.DRY_MINUTES -> Quad(stringResource(R.string.dry_after), s.dryMinutes, 30..480, stringResource(R.string.unit_min))
         NumberField.ALARM_DEFICIT -> Quad(stringResource(R.string.alarm_at), s.alarmDeficitMl, 200..5000, ml)
+        NumberField.QUIET_BEFORE_BED -> Quad(stringResource(R.string.quiet_before_bed), s.quietBeforeBedMin, 0..360, stringResource(R.string.unit_min))
         else -> Quad(stringResource(R.string.quick_button_n, quickIndex + 1), s.quickAddSizes.getOrElse(quickIndex) { 250 }, 10..2000, ml)
     }
     NumberSheet(
@@ -514,7 +522,7 @@ private fun SettingNumberSheet(field: NumberField, s: MizuSettings, ml: String, 
         unit = unit,
         onDismiss = close,
         onSave = { v ->
-            vm.updateSettings { cur ->
+            if (field == NumberField.QUIET_BEFORE_BED) vm.setQuietBeforeBed(v) else vm.updateSettings { cur ->
                 when (field) {
                     NumberField.WEIGHT -> cur.copy(weightKg = v)
                     NumberField.GOAL -> cur.copy(dailyGoalMl = v, goalMode = GoalMode.MANUAL)
@@ -526,6 +534,7 @@ private fun SettingNumberSheet(field: NumberField, s: MizuSettings, ml: String, 
                     NumberField.STRONG_DEFICIT -> cur.copy(strongDeficitMl = v)
                     NumberField.DRY_MINUTES -> cur.copy(dryMinutes = v)
                     NumberField.ALARM_DEFICIT -> cur.copy(alarmDeficitMl = v)
+                    NumberField.QUIET_BEFORE_BED -> cur.copy(quietBeforeBedMin = v)
                     else -> {
                         val list = cur.quickAddSizes.toMutableList()
                         while (list.size < 3) list += 250
