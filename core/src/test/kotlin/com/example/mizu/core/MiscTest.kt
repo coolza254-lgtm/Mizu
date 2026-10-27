@@ -161,10 +161,10 @@ class DayPlanTest {
     private fun t(h: Int, m: Int): java.time.LocalTime = java.time.LocalTime.of(h, m)
 
     @Test
-    fun wakeToAnHourBeforeBed() {
+    fun wakeThreeHoursBeforeBed() {
         val s = DayPlan.apply(MizuSettings(), today, t(6, 30), t(22, 30))
         assertEquals(t(6, 30), s.reminderStart)
-        assertEquals(t(21, 30), s.reminderEnd)
+        assertEquals(t(19, 30), s.reminderEnd)
         assertEquals(t(22, 30), s.bedTime)
         assertEquals(today, s.planDate)
         assertEquals(false, DayPlan.needsPlan(s, today))
@@ -173,7 +173,7 @@ class DayPlanTest {
 
     @Test
     fun bedAfterMidnight_windowEndsAt2359() {
-        val s = DayPlan.apply(MizuSettings(), today, t(9, 0), t(1, 30))
+        val s = DayPlan.apply(MizuSettings(), today, t(9, 0), t(4, 0))
         assertEquals(t(23, 59), s.reminderEnd)
     }
 

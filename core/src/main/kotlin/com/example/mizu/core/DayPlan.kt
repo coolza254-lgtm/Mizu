@@ -8,7 +8,7 @@ import java.time.LocalTime
  * reminders start at wake-up and stop [QUIET_BEFORE_BED_MIN] before bed, so the goal is not pushed right before sleep.
  */
 object DayPlan {
-    const val QUIET_BEFORE_BED_MIN = 60L
+    const val QUIET_BEFORE_BED_MIN = 180L
 
     /** Shortest window that still makes sense; a later bed time is pushed out to give at least this. */
     const val MIN_WINDOW_MIN = 120L
