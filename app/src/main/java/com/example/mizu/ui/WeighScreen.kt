@@ -1,6 +1,9 @@
 package com.example.mizu.ui
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -72,6 +75,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
     var weightText by rememberSaveable { mutableStateOf("") }
     var askRefill by remember { mutableStateOf<WeighOutcome.AskRefill?>(null) }
     var askFill by remember { mutableStateOf(false) }
+    var burst by remember { mutableStateOf(0) }
 
     val bottle = bottles.firstOrNull { it.id == selectedId }
         ?: bottles.maxByOrNull { it.waterUpdatedAt ?: java.time.LocalDateTime.MIN }
@@ -94,6 +98,7 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
         }
         haptics.success()
         if (result is WeighOutcome.Drink) sounds.drop() else sounds.fill()
+        if (result !is WeighOutcome.Drink) burst += 1
         vm.commitWeigh(b.id, result)
         weightText = ""
     }
@@ -108,9 +113,11 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
         toast.show(String.format(filledText, cap.grouped()))
         haptics.success()
         sounds.fill()
+        burst += 1
         weightText = ""
     }
 
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize()) {
         MizuTopBar(stringResource(R.string.weigh_title), onBack)
         if (bottle == null) {
@@ -212,6 +219,8 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
             )
         }
     }
+    FillBurst(burst)
+    }
 
     if (askFill) {
         bottle?.let { b ->
@@ -232,6 +241,45 @@ fun WeighScreen(vm: MizuViewModel, toast: ToastState, onBack: () -> Unit) {
             onConfirm = { askRefill = null; finish(refill) },
             onDismiss = { askRefill = null },
         )
+    }
+}
+
+/**
+ * Refill effect: water rises over the whole screen with a rippling surface and bubbles, then fades away.
+ * Plays once for each new [trigger] value (0 = never).
+ */
+@Composable
+private fun FillBurst(trigger: Int) {
+    if (trigger == 0) return
+    val progress = remember(trigger) { Animatable(0f) }
+    LaunchedEffect(trigger) { progress.animateTo(1f, tween(1700, easing = LinearEasing)) }
+    val p = progress.value
+    if (p >= 1f) return
+    val rise = FastOutSlowInEasing.transform((p / 0.6f).coerceIn(0f, 1f))
+    val alpha = if (p < 0.7f) 1f else 1f - (p - 0.7f) / 0.3f
+    Canvas(Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        val top = h * (1f - rise)
+        val amp = 14.dp.toPx() * (1f - rise * 0.6f)
+        val phase = p * 14f
+        val water = Path().apply {
+            moveTo(0f, h)
+            lineTo(0f, top)
+            var x = 0f
+            while (x <= w) {
+                lineTo(x, top + amp * kotlin.math.sin(x / w * 2f * Math.PI.toFloat() * 1.6f + phase))
+                x += 6f
+            }
+            lineTo(w, h)
+            close()
+        }
+        drawPath(water, Brush.verticalGradient(listOf(MizuColors.Water.copy(alpha = 0.60f * alpha), MizuColors.WaterDeep.copy(alpha = 0.50f * alpha))))
+        for (i in 0 until 16) {
+            val bx = w * (((i * 37) % 100) / 100f)
+            val by = h - h * ((p * 1.3f + i * 0.061f) % 1f)
+            if (by > top) drawCircle(Color.White.copy(alpha = 0.55f * alpha), (3 + (i % 4) * 3).dp.toPx(), Offset(bx, by))
+        }
     }
 }
 

@@ -255,4 +255,6 @@
     <string name="advice_pill_resume">ดื่มต่อตอน %1$s</string>
     <string name="advice_pill_drink_now">ดื่ม %1$s ml ตอนนี้</string>
     <string name="advice_pill_resume_ml">ค่อยดื่ม %1$s ml ตอน %2$s</string>
+    <string name="live_gap_behind">ต้องดื่มอีก %1$s ml เพื่อให้ทันแผนตอนนี้</string>
+    <string name="live_gap_ahead">นำแผนอยู่ %1$s ml</string>
 </resources>

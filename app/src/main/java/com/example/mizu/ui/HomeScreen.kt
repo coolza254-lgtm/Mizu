@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -146,6 +148,8 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
             consumed = consumed,
             goal = goal,
             advice = advice,
+            windowStart = s.reminderStart,
+            windowEnd = s.reminderEnd,
             unit = unit,
             bottomPadding = bottomPadding,
             onBottleClick = onWeigh,
@@ -195,9 +199,31 @@ internal fun currentBottle(bottles: List<Bottle>): Bottle? =
 
 /** Home: only the bottle, filling with the day's water, and how much is left to drink. Tap the bottle to weigh it. */
 @Composable
-private fun MinimalHome(remaining: Int, consumed: Int, goal: Int, advice: PaceAdvice, unit: String, bottomPadding: Dp, onBottleClick: () -> Unit) {
+private fun MinimalHome(
+    remaining: Int,
+    consumed: Int,
+    goal: Int,
+    advice: PaceAdvice,
+    windowStart: java.time.LocalTime,
+    windowEnd: java.time.LocalTime,
+    unit: String,
+    bottomPadding: Dp,
+    onBottleClick: () -> Unit,
+) {
     val showPlan = advice.state in setOf(PaceState.BEHIND, PaceState.BEHIND_FAR, PaceState.ON_TRACK, PaceState.AHEAD) && goal > 0
-    val planLevel = if (goal > 0) (advice.expectedMl / goal.toFloat()).coerceIn(0f, 1f) else 0f
+    // The even-pace plan runs with the clock, second by second, so the gap to it is always up to date.
+    val tick by produceState(LocalDateTime.now()) {
+        while (true) {
+            value = LocalDateTime.now()
+            delay(1000L)
+        }
+    }
+    val startDt = tick.toLocalDate().atTime(windowStart)
+    val endDt = tick.toLocalDate().atTime(windowEnd)
+    val windowMs = Duration.between(startDt, endDt).toMillis().coerceAtLeast(1L)
+    val frac = (Duration.between(startDt, tick).toMillis().toDouble() / windowMs).coerceIn(0.0, 1.0)
+    val planMl = goal * frac
+    val planLevel = if (goal > 0) (planMl / goal).toFloat().coerceIn(0f, 1f) else 0f
     val behind = advice.state == PaceState.BEHIND || advice.state == PaceState.BEHIND_FAR
     val planColor = if (behind) MizuColors.Warn else MizuColors.WaterDeep
     val level by animateFloatAsState(GoalCalculator.progress(consumed, goal), tween(900, easing = FastOutSlowInEasing), label = "level")
@@ -281,13 +307,15 @@ private fun MinimalHome(remaining: Int, consumed: Int, goal: Int, advice: PaceAd
             }
         }
         Spacer(Modifier.height(16.dp))
-        AdvicePill(advice)
+        AdvicePill(advice, if (showPlan) planMl - consumed else null)
     }
 }
 
+private fun ml1(v: Double): String = String.format(java.util.Locale.US, "%,.1f", v)
+
 /** One line of advice under the bottle: what to drink now (or to rest), and by when. */
 @Composable
-private fun AdvicePill(a: PaceAdvice) {
+private fun AdvicePill(a: PaceAdvice, liveGapMl: Double?) {
     val by = a.byTime?.format(TIME_FORMAT) ?: "—"
     val done = a.state == PaceState.REACHED || a.state == PaceState.OVER_GOAL
     // Always one clear call: drink now, or rest (and when to drink again, and how much).
@@ -319,6 +347,21 @@ private fun AdvicePill(a: PaceAdvice) {
     ) {
         Text(headline, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = accent)
         if (sub != null) Text(sub, style = MaterialTheme.typography.bodyMedium, color = MizuColors.InkSoft)
+        if (liveGapMl != null) {
+            // Exact gap to the even pace, running with the clock.
+            val text = if (liveGapMl >= 0) {
+                stringResource(R.string.live_gap_behind, ml1(liveGapMl))
+            } else {
+                stringResource(R.string.live_gap_ahead, ml1(-liveGapMl))
+            }
+            Text(
+                text,
+                style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum"),
+                fontWeight = FontWeight.SemiBold,
+                color = accent,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
     }
 }
 

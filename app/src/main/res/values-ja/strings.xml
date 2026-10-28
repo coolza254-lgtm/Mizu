@@ -255,4 +255,6 @@
     <string name="advice_pill_resume">%1$sに再開</string>
     <string name="advice_pill_drink_now">今すぐ %1$s ml 飲む</string>
     <string name="advice_pill_resume_ml">%2$sに %1$s ml</string>
+    <string name="live_gap_behind">計画に追いつくまであと %1$s ml</string>
+    <string name="live_gap_ahead">計画より %1$s ml 先行</string>
 </resources>
