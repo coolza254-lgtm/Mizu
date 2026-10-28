@@ -253,4 +253,6 @@
     <string name="advice_pill_rest">少し休憩</string>
     <string name="advice_pill_by">%1$sまでに</string>
     <string name="advice_pill_resume">%1$sに再開</string>
+    <string name="advice_pill_drink_now">今すぐ %1$s ml 飲む</string>
+    <string name="advice_pill_resume_ml">%2$sに %1$s ml</string>
 </resources>

@@ -253,4 +253,6 @@
     <string name="advice_pill_rest">Rest first</string>
     <string name="advice_pill_by">by %1$s</string>
     <string name="advice_pill_resume">Next at %1$s</string>
+    <string name="advice_pill_drink_now">Drink %1$s ml now</string>
+    <string name="advice_pill_resume_ml">Then %1$s ml at %2$s</string>
 </resources>

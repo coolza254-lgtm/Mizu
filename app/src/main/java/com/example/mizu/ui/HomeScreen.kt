@@ -289,20 +289,24 @@ private fun MinimalHome(remaining: Int, consumed: Int, goal: Int, advice: PaceAd
 @Composable
 private fun AdvicePill(a: PaceAdvice) {
     val by = a.byTime?.format(TIME_FORMAT) ?: "—"
-    val drinkNow = a.drinkNowMl > 0
+    val done = a.state == PaceState.REACHED || a.state == PaceState.OVER_GOAL
+    // Always one clear call: drink now, or rest (and when to drink again, and how much).
+    val drinkNow = !done && a.drinkNowMl > 0 && !a.restFirst &&
+        (a.state == PaceState.BEHIND || a.state == PaceState.BEHIND_FAR ||
+            a.state == PaceState.BEFORE_START || a.state == PaceState.DAY_OVER_SHORT)
     val headline = when {
-        a.state == PaceState.REACHED || a.state == PaceState.OVER_GOAL -> stringResource(R.string.goal_reached)
-        a.state == PaceState.AHEAD || a.state == PaceState.TOO_FAST || !drinkNow -> stringResource(R.string.advice_pill_rest)
-        else -> stringResource(R.string.advice_pill_drink, a.drinkNowMl.grouped())
+        done -> stringResource(R.string.goal_reached)
+        drinkNow -> stringResource(R.string.advice_pill_drink_now, a.drinkNowMl.grouped())
+        else -> stringResource(R.string.advice_pill_rest)
     }
     val sub = when {
-        a.state == PaceState.REACHED || a.state == PaceState.OVER_GOAL -> null
-        a.state == PaceState.AHEAD || a.state == PaceState.TOO_FAST || !drinkNow -> stringResource(R.string.advice_pill_resume, by)
-        a.state == PaceState.BEHIND || a.state == PaceState.BEHIND_FAR ->
-            stringResource(R.string.advice_behind_t, (-a.gapMl).grouped()) + " · " +
-                stringResource(if (a.restFirst) R.string.advice_pill_resume else R.string.advice_pill_by, by)
+        done -> null
+        drinkNow && (a.state == PaceState.BEHIND || a.state == PaceState.BEHIND_FAR) ->
+            stringResource(R.string.advice_behind_t, (-a.gapMl).grouped()) + (a.byTime?.let { " · " + stringResource(R.string.advice_pill_by, by) } ?: "")
+        drinkNow -> a.byTime?.let { stringResource(R.string.advice_pill_by, by) }
         a.byTime == null -> null
-        else -> stringResource(R.string.advice_pill_by, by)
+        a.drinkNowMl > 0 -> stringResource(R.string.advice_pill_resume_ml, a.drinkNowMl.grouped(), by)
+        else -> stringResource(R.string.advice_pill_resume, by)
     }
     val (background, accent) = when (a.state) {
         PaceState.BEHIND, PaceState.BEHIND_FAR, PaceState.TOO_FAST, PaceState.OVER_GOAL -> MizuColors.WarnSoft to MizuColors.Warn
