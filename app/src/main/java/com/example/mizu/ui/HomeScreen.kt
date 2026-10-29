@@ -15,6 +15,9 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.runtime.produceState
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
@@ -148,6 +151,8 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
             consumed = consumed,
             goal = goal,
             advice = advice,
+            bottleWaterMl = bottle?.currentWaterG,
+            bottleCapacityMl = bottle?.capacityMl,
             recentLogs = logs.filter { it.timestamp.isAfter(now.minusHours(3)) },
             windowStart = s.reminderStart,
             windowEnd = s.reminderEnd,
@@ -206,6 +211,8 @@ private fun MinimalHome(
     goal: Int,
     advice: PaceAdvice,
     recentLogs: List<DrinkLog>,
+    bottleWaterMl: Int?,
+    bottleCapacityMl: Int?,
     windowStart: java.time.LocalTime,
     windowEnd: java.time.LocalTime,
     unit: String,
@@ -235,118 +242,150 @@ private fun MinimalHome(
         animationSpec = infiniteRepeatable(tween(3200, easing = LinearEasing), RepeatMode.Restart),
         label = "phase",
     )
+    val bottleFill = if (bottleWaterMl != null) {
+        val cap = bottleCapacityMl?.takeIf { it > 0 } ?: maxOf(bottleWaterMl, 600)
+        (bottleWaterMl.toFloat() / cap).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    val bottleLevel by animateFloatAsState(bottleFill, tween(900, easing = FastOutSlowInEasing), label = "bottleLevel")
     Column(
-        Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = bottomPadding),
+        Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = bottomPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(stringResource(R.string.home_left_today), style = MaterialTheme.typography.titleMedium, color = MizuColors.InkSoft)
-        Text(remaining.grouped(), fontSize = 92.sp, lineHeight = 100.sp, fontWeight = FontWeight.Bold, color = MizuColors.Ink)
-        Text(unit, style = MaterialTheme.typography.titleLarge, color = MizuColors.WaterDeep)
-        Spacer(Modifier.height(20.dp))
-        Canvas(Modifier.weight(1f).fillMaxWidth().bouncyClick(haptic = HapticKind.TICK) { onBottleClick() }) {
-            val h = minOf(size.height, size.width * 1.9f)
-            val w = h / 1.9f
-            translate(left = (size.width - w) / 2f, top = (size.height - h) / 2f) {
-                val bodyTop = 0.14f * h
-                val bodyBottom = 0.98f * h
-                val body = Path().apply {
-                    moveTo(0.12f * w, bodyTop)
-                    lineTo(0.88f * w, bodyTop)
-                    lineTo(0.84f * w, 0.93f * h)
-                    quadraticBezierTo(0.835f * w, bodyBottom, 0.76f * w, bodyBottom)
-                    lineTo(0.24f * w, bodyBottom)
-                    quadraticBezierTo(0.165f * w, bodyBottom, 0.16f * w, 0.93f * h)
-                    close()
-                }
-                val waterY = bodyBottom - (bodyBottom - bodyTop) * level
-                fun wave(offset: Float, amp: Float) = Path().apply {
-                    moveTo(0f, waterY)
-                    var x = 0f
-                    while (x <= w) {
-                        lineTo(x, waterY + amp * sin(x / w * 3f * PI.toFloat() + (phase + offset) * 2f * PI.toFloat()))
-                        x += 6f
-                    }
-                    lineTo(w, h)
-                    lineTo(0f, h)
-                    close()
-                }
-                drawPath(body, Color.White)
-                clipPath(body) {
-                    drawPath(wave(0.3f, 0.012f * h), MizuColors.Aqua)
-                    drawPath(wave(0f, 0.014f * h), MizuColors.Water)
-                }
-                drawRoundRect(Color.White.copy(alpha = 0.75f), Offset(0.22f * w, 0.22f * h), Size(0.04f * w, 0.38f * h), CornerRadius(0.02f * w))
-                drawPath(body, MizuColors.Ink, style = Stroke(width = 5.dp.toPx()))
-                // where the even pace says the water should be by now, and the gap to the real level
-                if (showPlan) {
-                    val planY = bodyBottom - (bodyBottom - bodyTop) * planLevel
-                    drawLine(
-                        planColor, Offset(-0.10f * w, planY), Offset(1.10f * w, planY), strokeWidth = 3.dp.toPx(),
-                        cap = StrokeCap.Round, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10.dp.toPx(), 6.dp.toPx())),
-                    )
-                    drawCircle(planColor, 5.dp.toPx(), Offset(1.10f * w, planY))
-                    if (kotlin.math.abs(waterY - planY) > 6.dp.toPx()) {
-                        val bx = -0.14f * w
-                        drawLine(planColor, Offset(bx, planY), Offset(bx, waterY), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
-                        drawLine(planColor, Offset(bx, planY), Offset(bx + 0.05f * w, planY), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
-                        drawLine(planColor, Offset(bx, waterY), Offset(bx + 0.05f * w, waterY), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
-                    }
-                }
-                // lid
-                drawRoundRect(Color(0xFF2B3440), Offset(0.37f * w, 0.0f), Size(0.26f * w, 0.06f * h), CornerRadius(0.03f * h))
-                drawRoundRect(Color(0xFF3A414B), Offset(0.05f * w, 0.04f * h), Size(0.9f * w, 0.10f * h), CornerRadius(0.03f * h))
-                // face
-                val eyeR = 0.028f * w
-                drawCircle(MizuColors.Ink, eyeR, Offset(0.38f * w, 0.80f * h))
-                drawCircle(MizuColors.Ink, eyeR, Offset(0.62f * w, 0.80f * h))
-                drawArc(
-                    MizuColors.Ink, startAngle = 20f, sweepAngle = 140f, useCenter = false,
-                    topLeft = Offset(0.42f * w, 0.79f * h), size = Size(0.16f * w, 0.07f * h),
-                    style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round),
+        Text(stringResource(R.string.home_drunk_today), style = MaterialTheme.typography.titleMedium, color = MizuColors.InkSoft)
+        Text(consumed.grouped(), fontSize = 84.sp, lineHeight = 90.sp, fontWeight = FontWeight.Bold, color = MizuColors.Ink)
+        Text(
+            unit + "  " + stringResource(R.string.home_of_goal, goal.grouped(), (level * 100).roundToInt().coerceAtLeast(0)),
+            style = MaterialTheme.typography.titleMedium,
+            color = MizuColors.WaterDeep,
+        )
+        Spacer(Modifier.height(8.dp))
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            Canvas(Modifier.fillMaxSize().bouncyClick(haptic = HapticKind.TICK) { onBottleClick() }) {
+                drawBodyFigure(level, phase, if (showPlan) planLevel else null, planColor)
+            }
+            Column(Modifier.align(Alignment.BottomEnd), horizontalAlignment = Alignment.CenterHorizontally) {
+                Canvas(
+                    Modifier.size(width = 76.dp, height = 128.dp).bouncyClick(haptic = HapticKind.TICK) { onBottleClick() },
+                ) { drawMiniBottle(bottleLevel, phase) }
+                Text(stringResource(R.string.home_bottle_left), style = MaterialTheme.typography.labelSmall, color = MizuColors.InkSoft)
+                Text(
+                    if (bottleWaterMl != null) bottleWaterMl.grouped() + " " + unit else "—",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MizuColors.Ink,
                 )
-                drawCircle(Color(0xFFF4A6A6).copy(alpha = 0.75f), 0.045f * w, Offset(0.29f * w, 0.835f * h))
-                drawCircle(Color(0xFFF4A6A6).copy(alpha = 0.75f), 0.045f * w, Offset(0.71f * w, 0.835f * h))
             }
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
         AdvicePill(advice, if (showPlan) planMl - consumed else null)
         Spacer(Modifier.height(10.dp))
         SettlingMeter(PaceAdvisor.settlingMl(tick, recentLogs), unit)
     }
 }
 
-/**
- * Water drunk recently that the body has not taken up yet, counting down with the clock
- * (a glass just drunk shows its full amount, then it drains at [PaceAdvisor.COMFORT_ML_PER_HOUR]).
- */
-@Composable
-private fun SettlingMeter(settlingMl: Double, unit: String) {
-    val (background, accent, status) = when {
-        settlingMl > PaceAdvisor.BUCKET_ML -> Triple(MizuColors.WarnSoft, MizuColors.Danger, stringResource(R.string.settling_too_much))
-        settlingMl > PaceAdvisor.BUCKET_ML / 2 -> Triple(MizuColors.WarnSoft, MizuColors.Warn, stringResource(R.string.settling_a_lot))
-        else -> Triple(MizuColors.GoodSoft, MizuColors.Good, stringResource(R.string.settling_ok))
+private fun cartoonFigure(): Path = Path().apply {
+    // Big-headed little person, in a 400 x 700 space.
+    addOval(androidx.compose.ui.geometry.Rect(50f, 20f, 350f, 320f))
+    addRoundRect(androidx.compose.ui.geometry.RoundRect(130f, 290f, 270f, 520f, CornerRadius(62f)))
+    fun limb(l: Float, t: Float, w: Float, h: Float, deg: Float, px: Float, py: Float) {
+        val limb = Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(l, t, l + w, t + h, CornerRadius(w / 2))) }
+        val m = androidx.compose.ui.graphics.Matrix().apply { translate(px, py); rotateZ(deg); translate(-px, -py) }
+        limb.transform(m)
+        addPath(limb)
     }
-    val fraction = (settlingMl / PaceAdvisor.MAX_ML_PER_HOUR).toFloat().coerceIn(0f, 1f)
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(background).padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.settling_label), style = MaterialTheme.typography.labelMedium, color = MizuColors.InkSoft)
-                Text(status, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = accent)
+    limb(78f, 330f, 52f, 150f, 14f, 104f, 330f)
+    limb(270f, 330f, 52f, 150f, -14f, 296f, 330f)
+    limb(140f, 470f, 58f, 150f, 0f, 0f, 0f)
+    limb(202f, 470f, 58f, 150f, 0f, 0f, 0f)
+}
+
+/** The cartoon person, filled with water up to [level] (today's progress); a dashed line marks the even-pace [planLevel]. */
+private fun DrawScope.drawBodyFigure(level: Float, phase: Float, planLevel: Float?, planColor: Color) {
+    val sc = minOf(size.width / 300f, size.height / 640f)
+    val ox = (size.width - 300f * sc) / 2f - 50f * sc
+    val oy = (size.height - 640f * sc) / 2f
+    translate(left = ox, top = oy) {
+        scale(sc, sc, pivot = Offset.Zero) {
+            val fig = cartoonFigure()
+            val top = 20f
+            val bottom = 620f
+            val waterY = bottom - (bottom - top) * level
+            drawPath(fig, MizuColors.Ink, style = Stroke(width = 22f, join = StrokeJoin.Round))
+            drawPath(fig, Color.White)
+            clipPath(fig) {
+                fun wave(offset: Float, amp: Float) = Path().apply {
+                    moveTo(0f, waterY)
+                    var x = 0f
+                    while (x <= 400f) {
+                        lineTo(x, waterY + amp * sin(x / 400f * 4f * PI.toFloat() + (phase + offset) * 2f * PI.toFloat()))
+                        x += 6f
+                    }
+                    lineTo(400f, 700f)
+                    lineTo(0f, 700f)
+                    close()
+                }
+                drawPath(wave(0.3f, 7f), MizuColors.Aqua)
+                drawPath(wave(0f, 9f), MizuColors.Water)
             }
-            Text(
-                ml1(settlingMl) + " " + unit,
-                style = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"),
-                fontWeight = FontWeight.Bold,
-                color = accent,
+            // face
+            drawCircle(MizuColors.Ink, 14f, Offset(150f, 170f))
+            drawCircle(MizuColors.Ink, 14f, Offset(250f, 170f))
+            drawCircle(Color.White, 4.5f, Offset(155f, 164f))
+            drawCircle(Color.White, 4.5f, Offset(255f, 164f))
+            drawArc(
+                MizuColors.Ink, startAngle = 20f, sweepAngle = 140f, useCenter = false,
+                topLeft = Offset(172f, 190f), size = Size(56f, 34f), style = Stroke(width = 9f, cap = StrokeCap.Round),
             )
-        }
-        Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.7f))) {
-            Box(Modifier.fillMaxWidth(fraction).height(8.dp).clip(CircleShape).background(accent))
+            drawCircle(Color(0xFFF4A6A6).copy(alpha = 0.75f), 22f, Offset(118f, 214f))
+            drawCircle(Color(0xFFF4A6A6).copy(alpha = 0.75f), 22f, Offset(282f, 214f))
+            if (planLevel != null) {
+                val planY = bottom - (bottom - top) * planLevel
+                drawLine(
+                    planColor, Offset(20f, planY), Offset(380f, planY), strokeWidth = 7f, cap = StrokeCap.Round,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(18f, 12f)),
+                )
+                drawCircle(planColor, 9f, Offset(380f, planY))
+            }
         }
     }
+}
+
+/** A small bottle showing how much water is left in the one in use. */
+private fun DrawScope.drawMiniBottle(level: Float, phase: Float) {
+    val w = size.width
+    val h = size.height
+    val body = Path().apply {
+        moveTo(0.14f * w, 0.20f * h)
+        lineTo(0.86f * w, 0.20f * h)
+        lineTo(0.82f * w, 0.93f * h)
+        quadraticBezierTo(0.81f * w, 0.99f * h, 0.72f * w, 0.99f * h)
+        lineTo(0.28f * w, 0.99f * h)
+        quadraticBezierTo(0.19f * w, 0.99f * h, 0.18f * w, 0.93f * h)
+        close()
+    }
+    val top = 0.20f * h
+    val bottom = 0.99f * h
+    val waterY = bottom - (bottom - top) * level
+    drawPath(body, Color.White)
+    clipPath(body) {
+        val wave = Path().apply {
+            moveTo(0f, waterY)
+            var x = 0f
+            while (x <= w) {
+                lineTo(x, waterY + 0.02f * h * sin(x / w * 3f * PI.toFloat() + phase * 2f * PI.toFloat()))
+                x += 4f
+            }
+            lineTo(w, h)
+            lineTo(0f, h)
+            close()
+        }
+        drawPath(wave, MizuColors.Water)
+    }
+    drawPath(body, MizuColors.Ink, style = Stroke(width = 3.dp.toPx(), join = StrokeJoin.Round))
+    drawRoundRect(Color(0xFF2B3440), Offset(0.36f * w, 0.0f), Size(0.28f * w, 0.10f * h), CornerRadius(0.03f * h))
+    drawRoundRect(Color(0xFF3A414B), Offset(0.08f * w, 0.08f * h), Size(0.84f * w, 0.14f * h), CornerRadius(0.03f * h))
 }
 
 private fun ml1(v: Double): String = String.format(java.util.Locale.US, "%,.1f", v)

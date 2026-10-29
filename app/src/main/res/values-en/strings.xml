@@ -261,4 +261,7 @@
     <string name="settling_ok">Fine, you can keep drinking</string>
     <string name="settling_a_lot">Quite a lot, slow down</string>
     <string name="settling_too_much">Too much, rest first</string>
+    <string name="home_drunk_today">Drunk today</string>
+    <string name="home_of_goal">of %1$s goal · %2$d%%</string>
+    <string name="home_bottle_left">Left in bottle</string>
 </resources>

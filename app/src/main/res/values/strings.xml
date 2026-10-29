@@ -261,4 +261,7 @@
     <string name="settling_ok">ปกติ ดื่มต่อได้</string>
     <string name="settling_a_lot">ดื่มไปค่อนข้างมาก</string>
     <string name="settling_too_much">ดื่มมากเกินไป พักก่อน</string>
+    <string name="home_drunk_today">วันนี้ดื่มไปแล้ว</string>
+    <string name="home_of_goal">จากเป้า %1$s · %2$d%%</string>
+    <string name="home_bottle_left">ในขวดเหลือ</string>
 </resources>

@@ -261,4 +261,7 @@
     <string name="settling_ok">問題なし、飲んでOK</string>
     <string name="settling_a_lot">やや多め、ペースを落として</string>
     <string name="settling_too_much">飲みすぎ、少し休んで</string>
+    <string name="home_drunk_today">今日飲んだ量</string>
+    <string name="home_of_goal">目標 %1$s のうち · %2$d%%</string>
+    <string name="home_bottle_left">ボトルの残り</string>
 </resources>
