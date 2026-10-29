@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BarChart
-import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.Icon
@@ -60,7 +59,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mizu.R
 import com.example.mizu.util.localizedWrapper
 
-private enum class Tab { HOME, HISTORY, SETTINGS, BENEFITS }
+private enum class Tab { HOME, HISTORY, SETTINGS }
 
 /** A request from a Quick panel tile or launcher shortcut. Each instance is handled once. */
 sealed class QuickRequest(val id: Long = System.nanoTime()) {
@@ -121,7 +120,6 @@ private fun MizuShell(vm: MizuViewModel, startScreen: String?, quickRequest: Qui
             when (startScreen) {
                 "history" -> Tab.HISTORY
                 "settings" -> Tab.SETTINGS
-                "benefits" -> Tab.BENEFITS
                 else -> Tab.HOME
             },
         )
@@ -178,7 +176,6 @@ private fun MizuShell(vm: MizuViewModel, startScreen: String?, quickRequest: Qui
                 Tab.HOME -> HomeScreen(vm, toast, onWeigh = { overlay = Overlay.WEIGH }, bottomPadding = NavClearance)
                 Tab.HISTORY -> HistoryScreen(vm, bottomPadding = NavClearance)
                 Tab.SETTINGS -> SettingsScreen(vm, onExport = { overlay = Overlay.EXPORT }, bottomPadding = NavClearance)
-                Tab.BENEFITS -> BenefitsScreen(bottomPadding = NavClearance)
             }
         }
 
@@ -239,7 +236,6 @@ private fun FloatingNav(tab: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = 
         NavItem(Icons.Rounded.WaterDrop, stringResource(R.string.tab_home), tab == Tab.HOME) { onSelect(Tab.HOME) }
         NavItem(Icons.Rounded.BarChart, stringResource(R.string.tab_history), tab == Tab.HISTORY) { onSelect(Tab.HISTORY) }
         NavItem(Icons.Rounded.Settings, stringResource(R.string.tab_settings), tab == Tab.SETTINGS) { onSelect(Tab.SETTINGS) }
-        NavItem(Icons.Rounded.Lightbulb, stringResource(R.string.tab_benefits), tab == Tab.BENEFITS) { onSelect(Tab.BENEFITS) }
     }
 }
 
