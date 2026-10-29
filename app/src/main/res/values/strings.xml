@@ -300,4 +300,8 @@
     <string name="ben5_what">งานวิเคราะห์รวมหลายการทดลองในนักกีฬาและผู้ออกกำลังกาย เปรียบเทียบการเสียน้ำระดับต่างๆ</string>
     <string name="ben5_result">เมื่อเสียน้ำเกินราว 2% ของน้ำหนักตัว ประสิทธิภาพการออกกำลังกายแบบทนทานลดลงอย่างเห็นได้ชัด</string>
     <string name="ben5_caveat">ผลชัดในการออกกำลังกายนานหรือในอากาศร้อน การออกกำลังกายสั้นๆ อาจไม่เห็นความต่าง</string>
+    <string name="settling_label">ยังไม่ซึมเข้าร่างกาย</string>
+    <string name="settling_ok">ปกติ ดื่มต่อได้</string>
+    <string name="settling_a_lot">ดื่มไปค่อนข้างมาก</string>
+    <string name="settling_too_much">ดื่มมากเกินไป พักก่อน</string>
 </resources>

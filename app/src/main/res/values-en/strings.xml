@@ -300,4 +300,8 @@
     <string name="ben5_what">A pooled analysis of many trials in athletes and exercisers comparing different levels of fluid loss.</string>
     <string name="ben5_result">Losing more than about 2% of body weight clearly reduced endurance performance.</string>
     <string name="ben5_caveat">The effect is clearest in long or hot-weather exercise; short workouts may show no difference.</string>
+    <string name="settling_label">Not absorbed yet</string>
+    <string name="settling_ok">Fine, you can keep drinking</string>
+    <string name="settling_a_lot">Quite a lot, slow down</string>
+    <string name="settling_too_much">Too much, rest first</string>
 </resources>

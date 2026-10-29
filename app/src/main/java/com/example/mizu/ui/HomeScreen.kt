@@ -148,6 +148,7 @@ fun HomeScreen(vm: MizuViewModel, toast: ToastState, onWeigh: () -> Unit, bottom
             consumed = consumed,
             goal = goal,
             advice = advice,
+            recentLogs = logs.filter { it.timestamp.isAfter(now.minusHours(3)) },
             windowStart = s.reminderStart,
             windowEnd = s.reminderEnd,
             unit = unit,
@@ -204,6 +205,7 @@ private fun MinimalHome(
     consumed: Int,
     goal: Int,
     advice: PaceAdvice,
+    recentLogs: List<DrinkLog>,
     windowStart: java.time.LocalTime,
     windowEnd: java.time.LocalTime,
     unit: String,
@@ -308,6 +310,42 @@ private fun MinimalHome(
         }
         Spacer(Modifier.height(16.dp))
         AdvicePill(advice, if (showPlan) planMl - consumed else null)
+        Spacer(Modifier.height(10.dp))
+        SettlingMeter(PaceAdvisor.settlingMl(tick, recentLogs), unit)
+    }
+}
+
+/**
+ * Water drunk recently that the body has not taken up yet, counting down with the clock
+ * (a glass just drunk shows its full amount, then it drains at [PaceAdvisor.COMFORT_ML_PER_HOUR]).
+ */
+@Composable
+private fun SettlingMeter(settlingMl: Double, unit: String) {
+    val (background, accent, status) = when {
+        settlingMl > PaceAdvisor.BUCKET_ML -> Triple(MizuColors.WarnSoft, MizuColors.Danger, stringResource(R.string.settling_too_much))
+        settlingMl > PaceAdvisor.BUCKET_ML / 2 -> Triple(MizuColors.WarnSoft, MizuColors.Warn, stringResource(R.string.settling_a_lot))
+        else -> Triple(MizuColors.GoodSoft, MizuColors.Good, stringResource(R.string.settling_ok))
+    }
+    val fraction = (settlingMl / PaceAdvisor.MAX_ML_PER_HOUR).toFloat().coerceIn(0f, 1f)
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(background).padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.settling_label), style = MaterialTheme.typography.labelMedium, color = MizuColors.InkSoft)
+                Text(status, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = accent)
+            }
+            Text(
+                ml1(settlingMl) + " " + unit,
+                style = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"),
+                fontWeight = FontWeight.Bold,
+                color = accent,
+            )
+        }
+        Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.7f))) {
+            Box(Modifier.fillMaxWidth(fraction).height(8.dp).clip(CircleShape).background(accent))
+        }
     }
 }
 

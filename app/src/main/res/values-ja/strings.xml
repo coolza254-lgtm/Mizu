@@ -300,4 +300,8 @@
     <string name="ben5_what">アスリートや運動する人を対象とした複数の試験を統合し、水分喪失の程度ごとに比較しました。</string>
     <string name="ben5_result">体重の約2%を超えて水分を失うと、持久系運動の成績が明らかに低下しました。</string>
     <string name="ben5_caveat">長時間の運動や暑い環境で特に明らか。短い運動では差が出ないこともあります。</string>
+    <string name="settling_label">まだ吸収されていない水分</string>
+    <string name="settling_ok">問題なし、飲んでOK</string>
+    <string name="settling_a_lot">やや多め、ペースを落として</string>
+    <string name="settling_too_much">飲みすぎ、少し休んで</string>
 </resources>
